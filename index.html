@@ -19,7 +19,7 @@
       --color-bg-box: #e5e5e5;
 
       /* Typography */
-      --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-sans: "Pretendard", "Helvetica Neue", "Helvetica", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --fs-h1: 160px; /* 데스크톱 폰트 사이즈 160px 반영 */
       --fs-body: 16px;
       --fw-bold: 800;
@@ -161,12 +161,14 @@
     .hero-section__title {
       font-size: var(--fs-h1);
       font-weight: var(--fw-semibold);
+      font-family: 'Helvetica Neue', 'Helvetica', var( --font-sans);
       line-height: 1.15;
       letter-spacing: -2px;
       color: var(--color-text-main);
       text-transform: uppercase;
       word-break: keep-all;
       width: 100%;
+      white-space: nowrap;
     }
 
     .hero-section__line {
@@ -185,7 +187,7 @@
 
     .hero-section__image-box {
       display: inline-block;
-      height: 0.75em; /* 폰트 크기에 비례하여 높이 설정 */
+      height: 0.88em; /* 폰트 크기에 비례하여 높이 설정 */
       background-color: var(--color-bg-box);
       border-radius: 8px;
       flex-shrink: 0;
@@ -194,15 +196,15 @@
     }
 
     .hero-section__image-box--em {
-      width: 2.2em;
+      width: 1.5em;
     }
 
     .hero-section__image-box--brand {
-      width: 2.4em;
+      width: 1.5em;
     }
 
     .hero-section__image-box--through {
-      width: 2.2em;
+      width: 1.5em;
     }
 
     .hero-section__image-placeholder {
