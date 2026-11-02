@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLATTEN | Empowering fandom & Brand through data</title>
+  <meta name="description" content="Empowering fandom & Brand through data">
+  <style>
+    /* 1. Tokens */
+    :root {
+      /* Brand Colors */
+      --color-primary: #000000;
+      --color-secondary: #2563eb;
+      
+      /* Neutral Colors */
+      --color-text-main: #000000;
+      --color-text-muted: #666666;
+      --color-bg-main: #ffffff;
+      --color-bg-box: #e5e5e5;
+
+      /* Typography */
+      --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --fs-h1: 160px; /* 데스크톱 폰트 사이즈 160px 반영 */
+      --fs-body: 16px;
+      --fw-bold: 800;
+      --fw-semibold: 600;
+      --fw-regular: 400;
+
+      /* Spacing */
+      --space-xs: 8px;
+      --space-sm: 16px;
+      --space-md: 24px;
+      --space-lg: 40px;
+      --space-xl: 80px;
+
+      /* Focus & Layout */
+      --color-focus-ring: #2563eb;
+      --container-max-width: 1440px;
+    }
+
+    /* 2. Reset */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: var(--font-sans);
+      background-color: var(--color-bg-main);
+      color: var(--color-text-main);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      background: none;
+      border: none;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--color-focus-ring);
+      outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* 3. Layout (Header) */
+    .header {
+      width: 100%;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--space-lg);
+      background-color: var(--color-bg-main);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header__logo {
+      font-size: 20px;
+      font-weight: var(--fw-semibold);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .header__logo-icon {
+      font-size: 18px;
+    }
+
+    .gnv {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .gnv__list {
+      display: flex;
+      list-style: none;
+      gap: 28px;
+    }
+
+    .gnv__link {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text-main);
+      transition: color 0.2s;
+    }
+
+    .gnv__link:hover {
+      color: var(--color-text-muted);
+    }
+
+    .gnv__link--external {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    /* 4. Pages (Hero Section) */
+    .hero-section {
+      width: 100%;
+      min-height: calc(100vh - 80px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-xl) var(--space-md);
+      overflow-x: hidden;
+    }
+
+    .hero-section__container {
+      max-width: var(--container-max-width);
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hero-section__title {
+      font-size: var(--fs-h1);
+      font-weight: var(--fw-semibold);
+      line-height: 1.15;
+      letter-spacing: -2px;
+      color: var(--color-text-main);
+      text-transform: uppercase;
+      word-break: keep-all;
+      width: 100%;
+    }
+
+    .hero-section__line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: nowrap;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    .hero-section__line:last-child {
+      margin-bottom: 0;
+    }
+
+    .hero-section__image-box {
+      display: inline-block;
+      height: 0.75em; /* 폰트 크기에 비례하여 높이 설정 */
+      background-color: var(--color-bg-box);
+      border-radius: 8px;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-section__image-box--em {
+      width: 2.2em;
+    }
+
+    .hero-section__image-box--brand {
+      width: 2.4em;
+    }
+
+    .hero-section__image-box--through {
+      width: 2.2em;
+    }
+
+    .hero-section__image-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--color-text-muted);
+      border: 1px dashed #bbb;
+      background-color: #d8d8d8;
+    }
+
+    /* 5. Responsive Media Queries */
+    /* 태블릿 화면 (≤ 1024px) */
+    @media (max-width: 1024px) {
+      :root {
+        --fs-h1: 90px;
+      }
+      .header {
+        padding: 0 var(--space-md);
+      }
+      .gnv__list {
+        gap: 16px;
+      }
+      .gnv__link {
+        font-size: 13px;
+      }
+      .hero-section__line {
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+    }
+
+    /* 모바일 화면 (≤ 768px) */
+    @media (max-width: 768px) {
+      :root {
+        --fs-h1: 48px;
+      }
+      .header {
+        height: 60px;
+        padding: 0 var(--space-sm);
+      }
+      .header__logo {
+        font-size: 18px;
+      }
+      .gnv__list {
+        display: none;
+      }
+      .hero-section {
+        min-height: calc(100vh - 60px);
+        padding: var(--space-lg) var(--space-xs);
+      }
+      .hero-section__line {
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+        justify-content: center;
+      }
+      .hero-section__image-box {
+        height: 40px;
+      }
+      .hero-section__image-box--em {
+        width: 80px;
+      }
+      .hero-section__image-box--brand {
+        width: 90px;
+      }
+      .hero-section__image-box--through {
+        width: 80px;
+      }
+      .hero-section__image-placeholder {
+        font-size: 10px;
+      }
+    }
+
+    /* 소형 모바일 화면 (≤ 480px) */
+    @media (max-width: 480px) {
+      :root {
+        --fs-h1: 36px;
+      }
+      .hero-section__line {
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .hero-section__image-box {
+        height: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header__logo">
+      <span class="header__logo-icon">⁚⁚</span> FLATTEN
+    </div>
+    <nav class="gnv" aria-label="메인 메뉴">
+      <ul class="gnv__list">
+        <li><a href="#" class="gnv__link">Why FLATTEN</a></li>
+        <li><a href="#" class="gnv__link">Our Solutions</a></li>
+        <li><a href="#" class="gnv__link">All Campaigns</a></li>
+        <li><a href="#" class="gnv__link">Newsroom</a></li>
+        <li><a href="#" class="gnv__link">Contact Us</a></li>
+      </ul>
+      <a href="#" class="gnv__link--external" target="_blank" rel="noopener noreferrer">
+        shoeprize ↗
+      </a>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main-content">
+    <section class="hero-section" aria-label="가치 제안 히어로 섹션">
+      <div class="hero-section__container">
+        <h1 class="hero-section__title">
+          <div class="hero-section__line">
+            <span>EM</span>
+            <div class="hero-section__image-box hero-section__image-box--em">
+              <div class="hero-section__image-placeholder" aria-label="이미지 박스">Box</div>
+            </div>
+            <span>POWERING</span>
+          </div>
+
+          <div class="hero-section__line">
+            <span>FANDOM & BRAND</span>
+            <div class="hero-section__image-box hero-section__image-box--brand">
+              <div class="hero-section__image-placeholder" aria-label="이미지 박스">Box</div>
+            </div>
+          </div>
+
+          <div class="hero-section__line">
+            <span>THROUGH</span>
+            <div class="hero-section__image-box hero-section__image-box--through">
+              <div class="hero-section__image-placeholder" aria-label="이미지 박스">Box</div>
+            </div>
+            <span>DATA</span>
+          </div>
+        </h1>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('FLATTEN Responsive Single Page Initialized');
+    });
+  </script>
+</body>
+</html>
