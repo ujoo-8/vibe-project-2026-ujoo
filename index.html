@@ -5,53 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FLATTEN | Empowering fandom & Brand through data</title>
   <meta name="description" content="Empowering fandom & Brand through data">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <style>
-    /* 1. Tokens */
+    /* 1. Design Tokens */
     :root {
-      /* Brand Colors */
-      --color-primary: #000000;
-      --color-secondary: #2563eb;
-      
-      /* Neutral Colors */
-      --color-text-main: #000000;
-      --color-text-muted: #666666;
-      --color-bg-main: #ffffff;
-      --color-bg-box: #e5e5e5;
+      /* Colors */
+      --color-white: #ffffff;
+      --color-black: #000000;
+      --color-dark-bg: #000000;
+      --color-dark-card: #121212;
+      --color-dark-border: #222222;
+      --color-text-dark-primary: #ffffff;
+      --color-text-dark-muted: #8e8e93;
+      --color-text-light-primary: #000000;
+      --color-text-light-muted: #666666;
+      --color-gray-box: #e5e5e5;
+      --color-focus: #2563eb;
 
       /* Typography */
-      --font-sans: "Pretendard", "Helvetica Neue", "Helvetica", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --fs-h1: 160px; /* 데스크톱 폰트 사이즈 160px 반영 */
-      --fs-body: 16px;
-      --fw-bold: 800;
-      --fw-semibold: 600;
-      --fw-regular: 400;
-
-      /* Spacing */
-      --space-xs: 8px;
-      --space-sm: 16px;
-      --space-md: 24px;
-      --space-lg: 40px;
-      --space-xl: 80px;
-
-      /* Focus & Layout */
-      --color-focus-ring: #2563eb;
-      --container-max-width: 1440px;
+      --font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-hero: "Helvetica Neue", "Helvetica", "Pretendard", -apple-system, Arial, sans-serif;
+      
+      /* Layout & Spacing */
+      --header-height: 80px;
+      --header-height-mobile: 60px;
+      --max-width: 1440px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --transition-standard: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
 
-    /* 2. Reset */
+    /* 2. Reset & Base */
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
 
-    html, body {
-      width: 100%;
+    html {
       height: 100%;
-      font-family: var(--font-sans);
-      background-color: var(--color-bg-main);
-      color: var(--color-text-main);
+      scroll-behavior: smooth;
+      scroll-snap-type: y mandatory;
+      overflow-y: scroll;
+      font-family: var(--font-family);
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      height: 100%;
+      margin: 0;
+      background-color: var(--color-white);
+      color: var(--color-text-light-primary);
+      overflow-x: hidden;
     }
 
     a {
@@ -64,301 +71,1025 @@
       border: none;
       font: inherit;
       cursor: pointer;
+      color: inherit;
     }
 
     :focus-visible {
-      outline: 2px solid var(--color-focus-ring);
-      outline-offset: 2px;
+      outline: 2px solid var(--color-focus);
+      outline-offset: 3px;
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-      }
-    }
-
-    /* 3. Layout (Header) */
+    /* 3. Global Header */
     .header {
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      height: 80px;
+      height: var(--header-height);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 var(--space-lg);
-      background-color: var(--color-bg-main);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      padding: 0 40px;
+      z-index: 1000;
+      transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: var(--color-text-light-primary);
+    }
+
+    /* Dark theme header for dark sections */
+    .header--dark {
+      background-color: rgba(0, 0, 0, 0.85);
+      color: var(--color-text-dark-primary);
     }
 
     .header__logo {
-      font-size: 20px;
-      font-weight: var(--fw-semibold);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 800;
       letter-spacing: -0.5px;
+      text-transform: uppercase;
     }
 
     .header__logo-icon {
-      font-size: 18px;
+      font-size: 16px;
+      line-height: 1;
+      display: inline-block;
+      letter-spacing: -2px;
     }
 
-    .gnv {
+    .header__nav {
       display: flex;
       align-items: center;
+    }
+
+    .header__menu-list {
+      display: flex;
+      align-items: center;
+      list-style: none;
       gap: 32px;
     }
 
-    .gnv__list {
-      display: flex;
-      list-style: none;
-      gap: 28px;
-    }
-
-    .gnv__link {
+    .header__menu-link {
       font-size: 14px;
-      font-weight: 500;
-      color: var(--color-text-main);
-      transition: color 0.2s;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      transition: opacity 0.2s ease;
+      opacity: 0.9;
     }
 
-    .gnv__link:hover {
-      color: var(--color-text-muted);
+    .header__menu-link:hover {
+      opacity: 0.6;
     }
 
-    .gnv__link--external {
-      display: flex;
+    /* Mobile Hamburger Button */
+    .header__hamburger {
+      display: none;
+      width: 32px;
+      height: 32px;
+      position: relative;
       align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      color: var(--color-text-muted);
+      justify-content: center;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
     }
 
-    /* 4. Pages (Hero Section) */
-    .hero-section {
+    .header__hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background-color: currentColor;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    /* 4. Fullpage Scroll Snap Sections */
+    .section {
       width: 100%;
-      min-height: calc(100vh - 80px);
+      height: 100vh;
+      min-height: 100vh;
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: var(--space-xl) var(--space-md);
-      overflow-x: hidden;
+      overflow: hidden;
     }
 
-    .hero-section__container {
-      max-width: var(--container-max-width);
+    .inner-box {
+      max-width: var(--max-width);
       width: 100%;
-      text-align: center;
+      height: 100%;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      padding: 0 40px;
+      position: relative;
     }
 
-    .hero-section__title {
-      font-size: var(--fs-h1);
-      font-weight: var(--fw-semibold);
-      font-family: 'Helvetica Neue', 'Helvetica', var( --font-sans);
-      line-height: 1.15;
-      letter-spacing: -2px;
-      color: var(--color-text-main);
-      text-transform: uppercase;
-      word-break: keep-all;
+    /* ========================================================
+       SECTION 1: HERO TYPOGRAPHY (WHITE BACKGROUND)
+       ======================================================== */
+    .section--hero {
+      background-color: var(--color-white);
+      color: var(--color-black);
+      padding-top: var(--header-height);
+    }
+
+    .hero-container {
       width: 100%;
-      white-space: nowrap;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
     }
 
-    .hero-section__line {
+    /* Gradient Typography */
+    .hero-title {
+      font-family: var(--font-hero);
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+      width: 100%;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      word-break: keep-all;
+    }
+
+    .hero-text-gradient {
+      /* background: linear-gradient(90deg, #000000 0%, #1a1a1a 25%, #666666 60%, #c4c4c4 85%, #E5E5E5 100%); */
+      background-color:var(--color-black);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: inline-block;
+      vertical-align: middle;
+      
+    }
+
+    .hero-line {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 24px;
-      flex-wrap: nowrap;
-      margin-bottom: 20px;
-      width: 100%;
+      gap: 0.18em;
+      white-space: nowrap;
+      margin: 0.08em 0;
     }
 
-    .hero-section__line:last-child {
-      margin-bottom: 0;
-    }
-
-    .hero-section__image-box {
-      display: inline-block;
-      height: 0.88em; /* 폰트 크기에 비례하여 높이 설정 */
-      background-color: var(--color-bg-box);
-      border-radius: 8px;
+    /* Inline Image Boxes */
+    .hero-img-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 0.88em;
+      width: 1.55em;
+      overflow: hidden;
+      vertical-align: middle;
+      position: relative;
       flex-shrink: 0;
+      background-color: #d1d5db;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .hero-img-box img,
+    .hero-img-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Fallback visual illustration inside image box */
+    .hero-img-fallback {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero-img-fallback--beach {
+      background: linear-gradient(135deg, #2b5876 0%, #4e4376 100%);
+      background-size: cover;
+    }
+
+    .hero-img-fallback--beach::after {
+      content: "🏖️";
+      font-size: 0.45em;
+    }
+
+    .hero-img-fallback--neon {
+      background: linear-gradient(135deg, #ec008c 0%, #fc6767 100%);
+      background-size: cover;
+    }
+
+    .hero-img-fallback--neon::after {
+      content: "👟";
+      font-size: 0.45em;
+    }
+
+    .hero-img-fallback--event {
+      background: linear-gradient(135deg, #141e30 0%, #243b55 100%);
+      background-size: cover;
+    }
+
+    .hero-img-fallback--event::after {
+      content: "🎤";
+      font-size: 0.45em;
+    }
+
+    /* Desktop layout display */
+    .hero-layout--desktop {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      font-size: clamp(52px, 8.4vw, 136px);
+    }
+
+    /* Mobile layout display (hidden by default on desktop) */
+    .hero-layout--mobile {
+      display: none;
+    }
+
+    /* ========================================================
+       SECTION 2: WHY FLATTEN (BLACK BACKGROUND)
+       ======================================================== */
+    .section--why {
+      background-color: var(--color-dark-bg);
+      color: var(--color-text-dark-primary);
+    }
+
+    .why-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 980px;
+      text-align: center;
+    }
+
+    /* 3-Image Collage Box */
+    .why-collage {
+      position: relative;
+      width: 570px;
+      height: 350px;
+      margin-bottom: 40px;
+    }
+
+    .why-collage__card {
+      position: absolute;
+      border-radius: 0;
+      overflow: visible;
+      background: transparent;
+      box-shadow: none;
+      transition: transform 0.3s ease;
+    }
+
+    .why-collage__card:hover {
+      transform: translateY(-4px);
+    }
+
+    .why-collage__card img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* 1. Left Card: Kasina brick building */
+    .why-collage__card--building {
+      left: 0;
+      top: 35px;
+      width: 206px;
+      height: auto;
+      z-index: 1;
+    }
+
+    /* 2. Right Card: Concert heart hands */
+    .why-collage__card--concert {
+      right: 0;
+      top: 0;
+      width: 312px;
+      height: auto;
+      z-index: 1;
+    }
+
+    /* 3. Center Bottom Card: Smartphone holding shoeprize app */
+    .why-collage__card--phone {
+      left: 50%;
+      transform: translateX(-50%);
+      top: 95px;
+      width: 325px;
+      height: auto;
+      z-index: 2;
+    }
+
+    .why-collage__card--phone:hover {
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    /* Fallback visual styling inside collage cards */
+    .why-collage__fallback {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .why-collage__fallback-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: #ff3366;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .why-collage__fallback-icon {
+      font-size: 32px;
+      margin-bottom: 6px;
+    }
+
+    .why-collage__fallback-sub {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    /* Why Section Typography */
+    .why-title {
+      font-size: clamp(26px, 2.7vw, 38px);
+      font-weight: 800;
+      line-height: 1.38;
+      letter-spacing: -0.03em;
+      color: var(--color-text-dark-primary);
+      margin-bottom: 20px;
+      word-break: keep-all;
+    }
+
+    .why-desc {
+      font-size: clamp(14px, 1.1vw, 15px);
+      line-height: 1.68;
+      color: var(--color-text-dark-muted);
+      max-width: 840px;
+      margin-bottom: 32px;
+      word-break: keep-all;
+    }
+
+    /* Why FLATTEN Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: -0.2px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition-standard);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn--white {
+      background-color: var(--color-white);
+      color: var(--color-black);
+      padding: 12px 28px;
+    }
+
+    .btn--white:hover {
+      background-color: #f0f0f0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
+    }
+
+    /* ========================================================
+       SECTION 3: OUR SOLUTIONS (PAGE 3)
+       ======================================================== */
+    .section--solutions {
+      background-color: #050505;
+      color: var(--color-text-dark-primary);
+    }
+
+    .solutions-container {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .solutions-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .solutions-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #999999;
+      margin-bottom: 12px;
+    }
+
+    .solutions-title {
+      font-size: clamp(26px, 2.8vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.35;
+      color: var(--color-white);
+      word-break: keep-all;
+    }
+
+    .solutions-grid {
+      display: flex;
+      gap: 24px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .solution-card {
+      flex: 1;
+      max-width: 360px;
+      background-color: var(--color-dark-card);
+      border: 1px solid var(--color-dark-border);
+      border-radius: var(--radius-lg);
+      padding: 36px 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: var(--transition-standard);
       position: relative;
       overflow: hidden;
     }
 
-    .hero-section__image-box--em {
-      width: 1.5em;
+    .solution-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, #3b82f6, #ec4899);
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
-    .hero-section__image-box--brand {
-      width: 1.5em;
+    .solution-card:hover {
+      transform: translateY(-6px);
+      border-color: #333333;
+      background-color: #171717;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
     }
 
-    .hero-section__image-box--through {
-      width: 1.5em;
+    .solution-card:hover::before {
+      opacity: 1;
     }
-    .hero-section__image-content { /* Placeholder 대신 사용할 클래스 */
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.3s ease; /* 간단한 애니메이션 효과 추가 */
-    }
-    .hero-section__image-placeholder {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+
+    .solution-card__number {
       font-size: 14px;
-      color: var(--color-text-muted);
-      border: 1px dashed #bbb;
-      background-color: #d8d8d8;
+      font-weight: 700;
+      color: #666666;
+      margin-bottom: 20px;
     }
 
-    /* 5. Responsive Media Queries */
-    /* 태블릿 화면 (≤ 1024px) */
-    @media (max-width: 1024px) {
-      :root {
-        --fs-h1: 90px;
-      }
-      .header {
-        padding: 0 var(--space-md);
-      }
-      .gnv__list {
-        gap: 16px;
-      }
-      .gnv__link {
-        font-size: 13px;
-      }
-      .hero-section__line {
-        gap: 16px;
-        margin-bottom: 16px;
-      }
+    .solution-card__title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      letter-spacing: -0.5px;
+      color: var(--color-white);
     }
 
-    /* 모바일 화면 (≤ 768px) */
+    .solution-card__desc {
+      font-size: 14px;
+      color: var(--color-text-dark-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+      word-break: keep-all;
+    }
+
+    .solution-card__link {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-white);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: gap 0.2s ease;
+    }
+
+    .solution-card:hover .solution-card__link {
+      gap: 10px;
+    }
+
+    /* ========================================================
+       5. Right Side Scroll Indicator
+       ======================================================== */
+    .scroll-indicator {
+      position: fixed;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 999;
+    }
+
+    .scroll-indicator__dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.25);
+      transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      position: relative;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .scroll-indicator__dot.active {
+      transform: scale(1.3);
+      background-color: #000000;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Light dots when over dark sections */
+    .scroll-indicator--dark .scroll-indicator__dot {
+      background-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .scroll-indicator--dark .scroll-indicator__dot.active {
+      background-color: #ffffff;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+    }
+
+    /* ========================================================
+       6. Mobile Layout (< 768px)
+       ======================================================== */
     @media (max-width: 768px) {
       :root {
-        --fs-h1: 48px;
+        --header-height: var(--header-height-mobile);
       }
+
       .header {
-        height: 60px;
-        padding: 0 var(--space-sm);
+        padding: 0 20px;
+        height: var(--header-height);
       }
+
       .header__logo {
         font-size: 18px;
       }
-      .gnv__list {
+
+      .header__menu-list {
         display: none;
       }
-      .hero-section {
-        min-height: calc(100vh - 60px);
-        padding: var(--space-lg) var(--space-xs);
-      }
-      .hero-section__line {
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 12px;
-        justify-content: center;
-      }
-      .hero-section__image-box {
-        height: 40px;
-      }
-      .hero-section__image-box--em {
-        width: 80px;
-      }
-      .hero-section__image-box--brand {
-        width: 90px;
-      }
-      .hero-section__image-box--through {
-        width: 80px;
-      }
-      .hero-section__image-placeholder {
-        font-size: 10px;
-      }
-    }
 
-    /* 소형 모바일 화면 (≤ 480px) */
-    @media (max-width: 480px) {
-      :root {
-        --fs-h1: 36px;
+      .header__hamburger {
+        display: flex;
       }
-      .hero-section__line {
-        gap: 6px;
-        margin-bottom: 8px;
+
+      .inner-box {
+        padding: 0 20px;
       }
-      .hero-section__image-box {
-        height: 30px;
+
+      /* Section 1 Hero Mobile (5-Line Layout) */
+      .hero-layout--desktop {
+        display: none;
+      }
+
+      .hero-layout--mobile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        font-size: clamp(38px, 11.5vw, 64px);
+      }
+
+      .hero-layout--mobile .hero-line {
+        gap: 0.12em;
+        margin: 0.05em 0;
+      }
+
+      .hero-layout--mobile .hero-img-box {
+        height: 0.82em;
+        width: 1.45em;
+      }
+
+      /* Section 2 Why FLATTEN Mobile */
+      .why-container {
+        align-items: flex-start;
+        text-align: left;
+        max-width: 100%;
+      }
+
+      .why-collage {
+        width: 100%;
+        max-width: 340px;
+        height: 320px;
+        margin: 0 auto 32px auto;
+      }
+
+      .why-collage__card--building {
+        width: 125px;
+        height: auto;
+        left: 0;
+        top: 30px;
+      }
+
+      .why-collage__card--concert {
+        width: 190px;
+        height: auto;
+        right: 0;
+        top: 0;
+      }
+
+      .why-collage__card--phone {
+        width: 200px;
+        height: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 85px;
+      }
+
+      .why-title {
+        font-size: clamp(22px, 6.2vw, 30px);
+        line-height: 1.35;
+        margin-bottom: 16px;
+        text-align: left;
+      }
+
+      .why-desc {
+        font-size: 13.5px;
+        line-height: 1.62;
+        margin-bottom: 24px;
+        text-align: left;
+      }
+
+      .why-container .btn {
+        align-self: flex-start;
+      }
+
+      /* Section 3 Solutions Mobile */
+      .solutions-grid {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .solution-card {
+        max-width: 100%;
+        padding: 24px 20px;
+      }
+
+      .solutions-header {
+        margin-bottom: 28px;
+      }
+
+      .solutions-title {
+        font-size: 24px;
+      }
+
+      /* Scroll Indicator on Mobile */
+      .scroll-indicator {
+        right: 14px;
+        gap: 10px;
+      }
+
+      .scroll-indicator__dot {
+        width: 7px;
+        height: 7px;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <header class="header">
+  <!-- Header (Fixed) -->
+  <header class="header" id="site-header">
     <div class="header__logo">
       <span class="header__logo-icon">⁚⁚</span> FLATTEN
     </div>
-    <nav class="gnv" aria-label="메인 메뉴">
-      <ul class="gnv__list">
-        <li><a href="#" class="gnv__link">Why FLATTEN</a></li>
-        <li><a href="#" class="gnv__link">Our Solutions</a></li>
-        <li><a href="#" class="gnv__link">All Campaigns</a></li>
-        <li><a href="#" class="gnv__link">Newsroom</a></li>
-        <li><a href="#" class="gnv__link">Contact Us</a></li>
+    <nav class="header__nav" aria-label="메인 네비게이션">
+      <ul class="header__menu-list">
+        <li><a href="#page-2" class="header__menu-link">Why FLATTEN</a></li>
+        <li><a href="#page-3" class="header__menu-link">Our Solutions</a></li>
+        <li><a href="#" class="header__menu-link">All Campaigns</a></li>
+        <li><a href="#" class="header__menu-link">Newsroom</a></li>
+        <li><a href="#" class="header__menu-link">Contact Us</a></li>
       </ul>
-      <a href="#" class="gnv__link--external" target="_blank" rel="noopener noreferrer">
-        shoeprize ↗
-      </a>
+      <button class="header__hamburger" aria-label="모바일 메뉴 열기" id="hamburger-btn">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </nav>
   </header>
 
+  <!-- Right Floating Section Indicator -->
+  <nav class="scroll-indicator" id="scroll-indicator" aria-label="페이지 위치 안내">
+    <button class="scroll-indicator__dot active" data-page="0" aria-label="1페이지 히어로 섹션 이동"></button>
+    <button class="scroll-indicator__dot" data-page="1" aria-label="2페이지 Why FLATTEN 섹션 이동"></button>
+    <button class="scroll-indicator__dot" data-page="2" aria-label="3페이지 Our Solutions 섹션 이동"></button>
+  </nav>
+
   <!-- Main Content -->
   <main id="main-content">
-    <section class="hero-section" aria-label="가치 제안 히어로 섹션">
-      <div class="hero-section__container">
-        <h1 class="hero-section__title">
-          <div class="hero-section__line">
-            <span>EM</span>
-            <div class="hero-section__image-box hero-section__image-box--em">
-              <div class="hero-section__image-placeholder" aria-label="이미지 박스">Box</div>
-            </div>
-            <span>POWERING</span>
-          </div>
 
-          <div class="hero-section__line">
-            <span>FANDOM & BRAND</span>
-            <div class="hero-section__image-box hero-section__image-box--brand">
-              <div class="hero-section__image-placeholder" aria-label="이미지 박스">Box</div>
-            </div>
-          </div>
+    <!-- ========================================================
+         PAGE 1: HERO SECTION (WHITE BACKGROUND)
+         ======================================================== -->
+    <section class="section section--hero" id="page-1" data-theme="light" aria-label="히어로 가치 제안">
+      <div class="inner-box">
+        <div class="hero-container">
+          <h1 class="hero-title">
+            
+            <!-- Desktop Layout (3 Lines) -->
+            <div class="hero-layout--desktop">
+              <!-- Line 1: EM [Video 1 PC] POWERING -->
+              <div class="hero-line">
+                <span class="hero-text-gradient">EM</span>
+                <div class="hero-img-box">
+                  <video src="images/used/home-1-pc.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <span class="hero-text-gradient">POWERING</span>
+              </div>
 
-          <div class="hero-section__line">
-            <span>THROUGH</span>
-            <div class="hero-section__image-box hero-section__image-box--through">
-              <div class="hero-section__image-placeholder" aria-label="이미지 박스">Box</div>
+              <!-- Line 2: FANDOM & BRAND [Video 2 PC] -->
+              <div class="hero-line">
+                <span class="hero-text-gradient">FANDOM &amp; BRAND</span>
+                <div class="hero-img-box">
+                  <video src="images/used/home-2-pc.mp4" autoplay loop muted playsinline></video>
+                </div>
+              </div>
+
+              <!-- Line 3: THROUGH [Video 3 PC] DATA -->
+              <div class="hero-line">
+                <span class="hero-text-gradient">THROUGH</span>
+                <div class="hero-img-box">
+                  <video src="images/used/home-3-pc.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <span class="hero-text-gradient">DATA</span>
+              </div>
             </div>
-            <span>DATA</span>
-          </div>
-        </h1>
+
+            <!-- Mobile Layout (5 Lines) -->
+            <div class="hero-layout--mobile">
+              <!-- Line 1: EMPOWERING -->
+              <div class="hero-line">
+                <span class="hero-text-gradient">EMPOWERING</span>
+              </div>
+
+              <!-- Line 2: FANDOM -->
+              <div class="hero-line">
+                <span class="hero-text-gradient">FANDOM</span>
+              </div>
+
+              <!-- Line 3: & [Video 1 MO] BRAND -->
+              <div class="hero-line">
+                <span class="hero-text-gradient">&amp;</span>
+                <div class="hero-img-box">
+                  <video src="images/used/home-1-mo.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <span class="hero-text-gradient">BRAND</span>
+              </div>
+
+              <!-- Line 4: THROUGH [Video 2 MO] -->
+              <div class="hero-line">
+                <span class="hero-text-gradient">THROUGH</span>
+                <div class="hero-img-box">
+                  <video src="images/used/home-2-mo.mp4" autoplay loop muted playsinline></video>
+                </div>
+              </div>
+
+              <!-- Line 5: DA [Video 3 MO] TA -->
+              <div class="hero-line">
+                <span class="hero-text-gradient">DA</span>
+                <div class="hero-img-box">
+                  <video src="images/used/home-3-mo.mp4" autoplay loop muted playsinline></video>
+                </div>
+                <span class="hero-text-gradient">TA</span>
+              </div>
+            </div>
+
+          </h1>
+        </div>
       </div>
     </section>
+
+    <!-- ========================================================
+         PAGE 2: WHY FLATTEN (BLACK BACKGROUND)
+         ======================================================== -->
+    <section class="section section--why" id="page-2" data-theme="dark" aria-label="Why FLATTEN">
+      <div class="inner-box">
+        <div class="why-container">
+          
+          <!-- 3-Image Overlapping Collage -->
+          <div class="why-collage">
+            <!-- 1. Building Card -->
+            <div class="why-collage__card why-collage__card--building">
+              <img src="images/flatten-7.webp" alt="Kasina Building">
+            </div>
+
+            <!-- 2. Concert Card -->
+            <div class="why-collage__card why-collage__card--concert">
+              <img src="images/flatten-8.webp" alt="Concert Stage Heart Hands">
+            </div>
+
+            <!-- 3. Phone App Mockup Card -->
+            <div class="why-collage__card why-collage__card--phone">
+              <img src="images/flatten-6.webp" alt="Shoeprize App HIDDEN QUEST">
+            </div>
+          </div>
+
+          <!-- Main Copy -->
+          <h2 class="why-title">
+            브랜드 팬덤을 지속 가능한 자산으로,<br>
+            데이터로 더 나은 고객 경험을 혁신하는<br class="hide-mobile"> 기술을 제공합니다.
+          </h2>
+
+          <!-- Description -->
+          <p class="why-desc">
+            플래튼은 혁신적 IT 솔루션을 통해 한정판 론칭, 팬 참여형 캠페인, 커뮤니티 활성화, 브랜디드 드롭 커머스 최적화, 데이터 인사이트 분석까지. 브랜드가 팬덤과 함께 성장하는 모든 과정을 쉽고 강력하게 지원합니다.
+          </p>
+
+          <!-- Button -->
+          <a href="#page-3" class="btn btn--white">Why FLATTEN</a>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         PAGE 3: OUR SOLUTIONS (PAGE 3)
+         ======================================================== -->
+    <section class="section section--solutions" id="page-3" data-theme="dark" aria-label="Our Solutions">
+      <div class="inner-box">
+        <div class="solutions-container">
+          
+          <div class="solutions-header">
+            <span class="solutions-badge">Our Solutions</span>
+            <h2 class="solutions-title">
+              팬덤과 브랜드를 연결하는<br>FLATTEN의 핵심 IT 기술
+            </h2>
+          </div>
+
+          <!-- 3 Partition Boxes for Solutions -->
+          <div class="solutions-grid">
+            
+            <div class="solution-card">
+              <span class="solution-card__number">01</span>
+              <h3 class="solution-card__title">Drop &amp; Commerce</h3>
+              <p class="solution-card__desc">
+                트래픽 폭주 환경에서도 안정적인 한정판 발매, 래플 응모 시스템 및 브랜디드 드롭 커머스 엔진을 제공합니다.
+              </p>
+              <a href="#" class="solution-card__link">자세히 보기 &rarr;</a>
+            </div>
+
+            <div class="solution-card">
+              <span class="solution-card__number">02</span>
+              <h3 class="solution-card__title">Fandom Campaign</h3>
+              <p class="solution-card__desc">
+                온·오프라인 팬 참여형 퀘스트, 커뮤니티 미션, 디지털 뱃지 등 몰입도 높은 인터랙티브 캠페인을 설계합니다.
+              </p>
+              <a href="#" class="solution-card__link">자세히 보기 &rarr;</a>
+            </div>
+
+            <div class="solution-card">
+              <span class="solution-card__number">03</span>
+              <h3 class="solution-card__title">Data Insight</h3>
+              <p class="solution-card__desc">
+                팬덤 행동 패턴과 참여 데이터를 심층 수집·분석하여 브랜드 마케팅 및 제품 전략에 필요한 핵심 지표를 도출합니다.
+              </p>
+              <a href="#" class="solution-card__link">자세히 보기 &rarr;</a>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
   </main>
 
+  <!-- Interactive JavaScript -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('FLATTEN Responsive Single Page Initialized');
+      const header = document.getElementById('site-header');
+      const sections = document.querySelectorAll('.section');
+      const dots = document.querySelectorAll('.scroll-indicator__dot');
+      const indicator = document.getElementById('scroll-indicator');
+
+      // 1. Intersection Observer to track current page & update indicator / header theme
+      const observerOptions = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.5 // Section is considered active when 50% in view
+      };
+
+      const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const sectionIndex = Array.from(sections).indexOf(entry.target);
+            const theme = entry.target.getAttribute('data-theme');
+
+            // Update active dot
+            dots.forEach((dot, idx) => {
+              if (idx === sectionIndex) {
+                dot.classList.add('active');
+              } else {
+                dot.classList.remove('active');
+              }
+            });
+
+            // Update Header & Indicator theme (Light vs Dark)
+            if (theme === 'dark') {
+              header.classList.add('header--dark');
+              indicator.classList.add('scroll-indicator--dark');
+            } else {
+              header.classList.remove('header--dark');
+              indicator.classList.remove('scroll-indicator--dark');
+            }
+          }
+        });
+      }, observerOptions);
+
+      sections.forEach(section => sectionObserver.observe(section));
+
+      // 2. Click on Indicator dots to smoothly navigate
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+          if (sections[index]) {
+            sections[index].scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      });
+
+      // 3. Smooth page-by-page mouse wheel scrolling
+      let isScrolling = false;
+      let activeIndex = 0;
+
+      window.addEventListener('wheel', (e) => {
+        if (isScrolling) return;
+
+        // Find currently visible section index
+        let currentIdx = 0;
+        const scrollPos = window.scrollY || window.pageYOffset;
+        const windowHeight = window.innerHeight;
+
+        currentIdx = Math.round(scrollPos / windowHeight);
+
+        if (e.deltaY > 30) {
+          // Scroll Down
+          if (currentIdx < sections.length - 1) {
+            isScrolling = true;
+            sections[currentIdx + 1].scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => { isScrolling = false; }, 800);
+          }
+        } else if (e.deltaY < -30) {
+          // Scroll Up
+          if (currentIdx > 0) {
+            isScrolling = true;
+            sections[currentIdx - 1].scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => { isScrolling = false; }, 800);
+          }
+        }
+      }, { passive: true });
+
+      // 4. Keyboard Arrow Key Navigation
+      window.addEventListener('keydown', (e) => {
+        const scrollPos = window.scrollY || window.pageYOffset;
+        const windowHeight = window.innerHeight;
+        const currentIdx = Math.round(scrollPos / windowHeight);
+
+        if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+          if (currentIdx < sections.length - 1) {
+            e.preventDefault();
+            sections[currentIdx + 1].scrollIntoView({ behavior: 'smooth' });
+          }
+        } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+          if (currentIdx > 0) {
+            e.preventDefault();
+            sections[currentIdx - 1].scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      });
     });
   </script>
 </body>
