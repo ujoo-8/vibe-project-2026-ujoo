@@ -342,11 +342,18 @@
     @keyframes heroTextAnim {
       0% {
         opacity: 0.3;
-        transform: translateX(-15px);
+        -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 0%, rgba(0,0,0,0.3) 0%);
+        mask-image: linear-gradient(90deg, #000 0%, #000 0%, rgba(0,0,0,0.3) 0%);
+      }
+      50% {
+        opacity: 0.3;
+        -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 0%, rgba(0,0,0,0.3) 0%);
+        mask-image: linear-gradient(90deg, #000 0%, #000 0%, rgba(0,0,0,0.3) 0%);
       }
       100% {
         opacity: 1;
-        transform: translateX(0);
+        -webkit-mask-image: linear-gradient(90deg, #000 100%, #000 100%);
+        mask-image: linear-gradient(90deg, #000 100%, #000 100%);
       }
     }
 
@@ -379,7 +386,32 @@
       background-clip: text;
       display: inline-block;
       vertical-align: middle;
-      animation: heroTextAnim 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      opacity: 0.3; /* 초기 투명도 유지 */
+    }
+
+    /* 순차적 애니메이션 적용 (데스크탑/모바일 공통 라인별 제어) */
+    .hero-layout--desktop .hero-line:nth-child(1) .hero-text-gradient,
+    .hero-layout--mobile .hero-line:nth-child(1) .hero-text-gradient {
+      animation: heroTextAnim 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      animation-delay: 0s;
+    }
+    .hero-layout--desktop .hero-line:nth-child(2) .hero-text-gradient,
+    .hero-layout--mobile .hero-line:nth-child(2) .hero-text-gradient {
+      animation: heroTextAnim 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      animation-delay: 0.5s;
+    }
+    .hero-layout--desktop .hero-line:nth-child(3) .hero-text-gradient,
+    .hero-layout--mobile .hero-line:nth-child(3) .hero-text-gradient {
+      animation: heroTextAnim 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      animation-delay: 1.0s;
+    }
+    .hero-layout--mobile .hero-line:nth-child(4) .hero-text-gradient {
+      animation: heroTextAnim 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      animation-delay: 1.5s;
+    }
+    .hero-layout--mobile .hero-line:nth-child(5) .hero-text-gradient {
+      animation: heroTextAnim 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      animation-delay: 2.0s;
     }
 
     .hero-line {
@@ -805,7 +837,58 @@
       margin: 0;
       word-break: keep-all;
     }
+    .section--newsroom {
+        background-color: var(--color-dark-bg);
+        color: var(--color-text-dark-primary);
+        height: auto;
+        min-height: 100vh;
+        padding: clamp(80px, 8vw, 140px) 0;
+        flex-direction: column;
+      }
+      .newsroom-header { width: 75%; text-align: left; margin-bottom: clamp(24px, 2.5vw, 40px); }
+      .newsroom-title { font-size: clamp(48px, 2.5vw, 9999px); font-weight: 700; line-height: 1.4; }
+      .newsroom-title__link { display: inline-flex; align-items: center; gap: 10px; color: var(--color-white); transition: opacity .2s ease; }
+      .newsroom-title__link:hover { opacity: .8; }
+      .newsroom-title__icon { width: clamp(56px, 2.91667vw, 9999px); height: auto; display: inline-block; vertical-align: middle; transition: transform .2s ease; }
+      .newsroom-title__link:hover .newsroom-title__icon { transform: translateX(4px); }
 
+      .newsroom-swiper { position: relative; width: 75%; }
+      .newsroom-swiper .swiper { width: 100%; overflow: hidden; }
+      .news-page { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: clamp(24px, 2.8vw, 44px); }
+
+      .news-card { display: flex; flex-direction: column; color: inherit; text-decoration: none; min-width: 0; }
+      .news-card__media { width: 100%; aspect-ratio: 370 / 247; border-radius: 4px; overflow: hidden; background-color: #1a1a1a; }
+      .news-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
+      .news-card:hover .news-card__media img { transform: scale(1.03); }
+      .news-card__body { display: flex; flex-direction: column; padding-top: 20px; }
+      .news-card__cat { font-size: 12px; font-weight: 500; letter-spacing: .2px; color: var(--color-white); }
+      .news-card__title { margin-top: 12px; font-size: clamp(16px, 1.15vw, 20px); font-weight: 700; line-height: 1.5; letter-spacing: -0.02em; word-break: keep-all; color: var(--color-white); }
+      .news-card__desc { margin-top: 10px; font-size: clamp(13px, 0.9vw, 15px); line-height: 1.5; color: var(--color-text-dark-muted); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; }
+      .news-card__date { margin-top: 10px; font-size: 14px; color: #888; }
+
+      .newsroom-nav { display: flex; align-items: center; justify-content: space-between; margin-top: clamp(32px, 3vw, 56px); }
+      .newsroom-pagination { display: flex; gap: 8px; }
+      .newsroom-pagination .swiper-pagination-bullet { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.3); opacity: 1; margin: 0 !important; transition: all .3s ease; }
+      .newsroom-pagination .swiper-pagination-bullet-active { background: #fff; width: 24px; border-radius: 4px; }
+      .newsroom-arrows { display: flex; gap: 12px; }
+      .newsroom-arrow { width: 44px; height: 44px; border: 1px solid #444; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px; transition: var(--transition-standard); }
+      .newsroom-arrow:hover { background: #fff; color: #000; }
+      .newsroom-arrow.swiper-button-disabled { opacity: .3; pointer-events: none; }
+
+      .footer { background-color: #1f1f1f; color: #666; position: relative; z-index: 4; }
+      .footer__inner { width: 75%; margin: 0 auto; padding: 80px 0 72px; }
+      .footer__top { display: flex; align-items: flex-start; justify-content: space-between; }
+      .footer__logo img { display: block; width: clamp(150px, 15.4vw, 220px); height: auto; }
+      .footer__nav { display: flex; align-items: flex-start; gap: clamp(32px, 3.2vw, 48px); list-style: none; }
+      .footer__nav a { font-size: 13px; font-weight: 500; line-height: 1.4; color: #fff; transition: opacity .2s ease; }
+      .footer__nav a:hover { opacity: .6; }
+      .footer__sub { list-style: none; margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+      .footer__divider { margin: 70px 0 24px; border: 0; border-top: 1px solid #444; }
+      .footer__name { font-size: 12px; line-height: 1.7; color: #666; }
+      .footer__info { font-size: 12px; line-height: 1.7; color: #666; }
+      .footer__info .sep { margin: 0 6px; }
+      .footer__info-line { display: inline; }
+      .footer__bottom-logo { display: none; }
     /* 5. Right Side Scroll Indicator */
     .scroll-indicator {
       position: fixed;
@@ -845,6 +928,14 @@
     }
 
     /* 6. Mobile Layout (< 768px) */
+
+    @media (max-width: 1024px) {
+      .news-page { column-gap: 20px; }
+      .news-card__body { padding-top: 14px; }
+
+      .footer__inner { width: 88%; }
+        .footer__nav { gap: 24px; }
+    }
     @media (max-width: 768px) {
       :root {
         --header-height: var(--header-height-mobile);
@@ -890,18 +981,9 @@
 
       .hero-layout--mobile .hero-img-box {
         height: 0.82em;
-        width: 0px; /* 모바일에서도 동일하게 0에서 1.45em으로 펼쳐짐 */
-        animation: heroBoxExpandMobile 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        width: 0px;
+        animation: heroBoxExpand 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         animation-delay: 0.2s;
-      }
-
-      @keyframes heroBoxExpandMobile {
-        0% {
-          width: 0px;
-        }
-        100% {
-          width: 1.45em;
-        }
       }
 
       .section--why {
@@ -1024,6 +1106,29 @@
         line-height: 1.5;
       }
 
+      .section--newsroom { padding: clamp(80px, 21.33333vw, 9999px) clamp(16px, 4.26667vw, 9999px) clamp(40px, 10.66667vw, 9999px); }
+      .newsroom-header { width: 100%; margin-bottom: 20px; }
+      .newsroom-title { font-size: clamp(22px, 7vw, 28px); }
+      .newsroom-title__icon { width: clamp(36px, 9.6vw, 9999px); height: clamp(36px, 9.6vw, 9999px); object-fit: contain; }
+      .newsroom-swiper { width: 100%; }
+      .news-page { grid-template-columns: 1fr; row-gap: clamp(40px, 10.66667vw, 9999px); }
+      .news-card__title { font-size: clamp(18px, 4.8vw, 9999px); line-height: 1.4; }
+      .news-card__desc { font-size: 14px; }
+      .newsroom-arrows { display: none; }
+      .newsroom-nav { justify-content: center; }
+
+
+      .footer__inner { width: 100%; padding: 52px 16px 56px; }
+      .footer__top, .footer__divider { display: none; }
+      .footer__name { font-size: 14px; font-weight: 700; line-height: 1.5; margin-bottom: 16px; }
+      .footer__info { font-size: 13px; line-height: 1.65; }
+      .footer__info .sep { display: none; }
+      .footer__info { display: flex; flex-direction: column; }
+      .footer__info-line { display: block; order: 1; }
+      .footer__info-line--biz { order: 2; }
+      .footer__info-line--addr { order: 3; }
+      .footer__bottom-logo { display: block; margin-top: 52px; }
+      .footer__bottom-logo img { display: block; width: clamp(150px, 49vw, 220px); height: auto; }
       .scroll-indicator {
         right: 14px;
         gap: 10px;
@@ -1310,63 +1415,6 @@
           </div>
     </section>
 
-    <style>
-      .section--newsroom {
-        background-color: var(--color-dark-bg);
-        color: var(--color-text-dark-primary);
-        height: auto;
-        min-height: 100vh;
-        padding: clamp(80px, 8vw, 140px) 0;
-        flex-direction: column;
-      }
-      .newsroom-header { width: 75%; text-align: left; margin-bottom: clamp(24px, 2.5vw, 40px); }
-      .newsroom-title { font-size: clamp(48px, 2.5vw, 9999px); font-weight: 700; line-height: 1.4; }
-      .newsroom-title__link { display: inline-flex; align-items: center; gap: 10px; color: var(--color-white); transition: opacity .2s ease; }
-      .newsroom-title__link:hover { opacity: .8; }
-      .newsroom-title__icon { width: clamp(56px, 2.91667vw, 9999px); height: auto; display: inline-block; vertical-align: middle; transition: transform .2s ease; }
-      .newsroom-title__link:hover .newsroom-title__icon { transform: translateX(4px); }
-
-      .newsroom-swiper { position: relative; width: 75%; }
-      .newsroom-swiper .swiper { width: 100%; overflow: hidden; }
-      .news-page { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: clamp(24px, 2.8vw, 44px); }
-
-      .news-card { display: flex; flex-direction: column; color: inherit; text-decoration: none; min-width: 0; }
-      .news-card__media { width: 100%; aspect-ratio: 370 / 247; border-radius: 4px; overflow: hidden; background-color: #1a1a1a; }
-      .news-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
-      .news-card:hover .news-card__media img { transform: scale(1.03); }
-      .news-card__body { display: flex; flex-direction: column; padding-top: 20px; }
-      .news-card__cat { font-size: 12px; font-weight: 500; letter-spacing: .2px; color: var(--color-white); }
-      .news-card__title { margin-top: 12px; font-size: clamp(16px, 1.15vw, 20px); font-weight: 700; line-height: 1.5; letter-spacing: -0.02em; word-break: keep-all; color: var(--color-white); }
-      .news-card__desc { margin-top: 10px; font-size: clamp(13px, 0.9vw, 15px); line-height: 1.5; color: var(--color-text-dark-muted); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; }
-      .news-card__date { margin-top: 10px; font-size: 14px; color: #888; }
-
-      .newsroom-nav { display: flex; align-items: center; justify-content: space-between; margin-top: clamp(32px, 3vw, 56px); }
-      .newsroom-pagination { display: flex; gap: 8px; }
-      .newsroom-pagination .swiper-pagination-bullet { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.3); opacity: 1; margin: 0 !important; transition: all .3s ease; }
-      .newsroom-pagination .swiper-pagination-bullet-active { background: #fff; width: 24px; border-radius: 4px; }
-      .newsroom-arrows { display: flex; gap: 12px; }
-      .newsroom-arrow { width: 44px; height: 44px; border: 1px solid #444; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px; transition: var(--transition-standard); }
-      .newsroom-arrow:hover { background: #fff; color: #000; }
-      .newsroom-arrow.swiper-button-disabled { opacity: .3; pointer-events: none; }
-
-      @media (max-width: 1024px) {
-        .news-page { column-gap: 20px; }
-        .news-card__body { padding-top: 14px; }
-      }
-      @media (max-width: 768px) {
-        .section--newsroom { padding: clamp(80px, 21.33333vw, 9999px) clamp(16px, 4.26667vw, 9999px) clamp(40px, 10.66667vw, 9999px); }
-        .newsroom-header { width: 100%; margin-bottom: 20px; }
-        .newsroom-title { font-size: clamp(22px, 7vw, 28px); }
-        .newsroom-title__icon { width: clamp(36px, 9.6vw, 9999px); height: clamp(36px, 9.6vw, 9999px); object-fit: contain; }
-        .newsroom-swiper { width: 100%; }
-        .news-page { grid-template-columns: 1fr; row-gap: clamp(40px, 10.66667vw, 9999px); }
-        .news-card__title { font-size: clamp(18px, 4.8vw, 9999px); line-height: 1.4; }
-        .news-card__desc { font-size: 14px; }
-        .newsroom-arrows { display: none; }
-        .newsroom-nav { justify-content: center; }
-      }
-    </style>
-
     <section class="section section--newsroom" id="page-5" data-theme="dark" aria-label="Newsroom">
       <div class="newsroom-header">
         <h2 class="newsroom-title">
@@ -1486,40 +1534,7 @@
     </section>
   </main>
 
-  <style>
-    .footer { background-color: #1f1f1f; color: #666; position: relative; z-index: 4; }
-    .footer__inner { width: 75%; margin: 0 auto; padding: 80px 0 72px; }
-    .footer__top { display: flex; align-items: flex-start; justify-content: space-between; }
-    .footer__logo img { display: block; width: clamp(150px, 15.4vw, 220px); height: auto; }
-    .footer__nav { display: flex; align-items: flex-start; gap: clamp(32px, 3.2vw, 48px); list-style: none; }
-    .footer__nav a { font-size: 13px; font-weight: 500; line-height: 1.4; color: #fff; transition: opacity .2s ease; }
-    .footer__nav a:hover { opacity: .6; }
-    .footer__sub { list-style: none; margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
-    .footer__divider { margin: 70px 0 24px; border: 0; border-top: 1px solid #444; }
-    .footer__name { font-size: 12px; line-height: 1.7; color: #666; }
-    .footer__info { font-size: 12px; line-height: 1.7; color: #666; }
-    .footer__info .sep { margin: 0 6px; }
-    .footer__info-line { display: inline; }
-    .footer__bottom-logo { display: none; }
 
-    @media (max-width: 1024px) {
-      .footer__inner { width: 88%; }
-      .footer__nav { gap: 24px; }
-    }
-    @media (max-width: 768px) {
-      .footer__inner { width: 100%; padding: 52px 16px 56px; }
-      .footer__top, .footer__divider { display: none; }
-      .footer__name { font-size: 14px; font-weight: 700; line-height: 1.5; margin-bottom: 16px; }
-      .footer__info { font-size: 13px; line-height: 1.65; }
-      .footer__info .sep { display: none; }
-      .footer__info { display: flex; flex-direction: column; }
-      .footer__info-line { display: block; order: 1; }
-      .footer__info-line--biz { order: 2; }
-      .footer__info-line--addr { order: 3; }
-      .footer__bottom-logo { display: block; margin-top: 52px; }
-      .footer__bottom-logo img { display: block; width: clamp(150px, 49vw, 220px); height: auto; }
-    }
-  </style>
   <footer class="footer" id="site-footer">
     <div class="footer__inner">
       <div class="footer__top">
@@ -1585,7 +1600,7 @@
       };
 
       const hero = sections[0];
-      const GROW_RATIO = 0.8;
+      const GROW_RATIO = 1.4; // 스크롤 애니메이션을 좀 더 부드럽고 살짝 느리게 처리
       let heroBox = null, heroExpand = null, heroR0 = null, heroP = 0;
 
       const buildHero = () => {
@@ -1618,11 +1633,12 @@
         heroP = p;
         const st = heroExpand.style;
         st.left = heroR0.l * (1 - e) + 'px';
-        st.top = (heroR0.t * (1 - e) + Math.max(0, y) * e) + 'px';
+        st.top = heroR0.t + 'px'; // 상단 위치를 고정하여 아래로만 확대되도록 설정
         st.width = (heroR0.w + (vw - heroR0.w) * e) + 'px';
-        st.height = (heroR0.h + (vh - heroR0.h) * e) + 'px';
-        heroExpand.classList.toggle('is-black', p >= 0.75);
-        whySection.classList.toggle('is-revealed', p >= 0.85);
+        st.height = (heroR0.h + (hero.clientHeight - heroR0.t) * e) + 'px'; // 하단 영역에 흰 여백이 없도록 섹션 끝까지 채우기
+        
+        heroExpand.classList.toggle('is-black', p >= 0.70);
+        whySection.classList.toggle('is-revealed', p >= 0.65);
       };
 
       const whySection = sections[1];
