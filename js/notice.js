@@ -510,6 +510,7 @@ const NAV = [
   ['All Campaigns', 'index.html#page-4'],
   ['Newsroom', 'index.html#page-5'],
   ['Contact Us', '#'],
+  ['Notice', 'notice-board/notice.html'],
 ];
 
 const bannerHtml = () => `
