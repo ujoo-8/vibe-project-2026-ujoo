@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FLATTEN | Empowering fandom & Brand through data</title>
+    <meta name="description" content="Empowering fandom & Brand through data" />
+    <link
+      rel="stylesheet"
+      as="style"
+      crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+    />
+    <link rel="stylesheet" href="./css/main.css" />
+  </head>
+  <body>
+    <!-- Header (Fixed) -->
+    <header class="header" id="site-header">
+      <div class="header__logo">
+        <a href="/">
+          <img
+            src="https://static.shoeprize.com/flatten/logo-flatten.svg"
+            alt="FLATTEN"
+          />
+        </a>
+        <!-- <span class="header__logo-icon">⁚⁚</span> FLATTEN -->
+      </div>
+      <nav class="header__nav" aria-label="메인 네비게이션">
+        <ul class="header__menu-list">
+          <li><a href="#page-2" class="header__menu-link">Why FLATTEN</a></li>
+          <li><a href="#page-3" class="header__menu-link">Our Solutions</a></li>
+          <li><a href="#page-4" class="header__menu-link">All Campaigns</a></li>
+          <li><a href="#page-5" class="header__menu-link">Newsroom</a></li>
+          <li><a href="#" class="header__menu-link">Contact Us</a></li>
+          <li><a href="./notice-board/notice.html" class="header__menu-link">Notice</a></li>
+        </ul>
+        <button
+          class="header__hamburger"
+          aria-label="모바일 메뉴 열기"
+          aria-controls="mobile-menu"
+          aria-expanded="false"
+          id="hamburger-btn"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </nav>
+    </header>
+
+    <!-- Mobile Menu Drawer -->
+    <aside
+      class="mobile-menu"
+      id="mobile-menu"
+      aria-hidden="true"
+      aria-label="모바일 메뉴"
+    >
+    <div class="header--inner">
+      <a href="#">
+        <img class="logo" src="images/logo-flatten.svg" alt="">
+      </a>
+      <button
+        class="mobile-menu__close"
+        id="menu-close-btn"
+        aria-label="메뉴 닫기"
+      ></button>
+    </div>
+      
+      <div class="mobile-menu__inner">
+        <ul class="mobile-menu__list">
+          <li class="mobile-menu__item">
+            <a href="#page-2" class="mobile-menu__link" data-menu-link
+              >Why FLATTEN</a
+            >
+          </li>
+          <li class="mobile-menu__item">
+            <a
+              href="#page-3"
+              class="mobile-menu__link mobile-menu__link--static"
+              data-menu-link
+              >Our Solutions</a
+            >
+            <ul class="mobile-menu__sub">
+              <li><a href="#page-3" data-menu-link>shoeprize</a></li>
+              <li><a href="#page-3" data-menu-link>ERP</a></li>
+              <li><a href="#page-3" data-menu-link>QUEUE</a></li>
+            </ul>
+          </li>
+          <li class="mobile-menu__item">
+            <a href="#page-4" class="mobile-menu__link" data-menu-link
+              >All Campaigns</a
+            >
+          </li>
+          <li class="mobile-menu__item">
+            <a href="#page-5" class="mobile-menu__link" data-menu-link
+              >Newsroom</a
+            >
+          </li>
+          <li class="mobile-menu__item">
+            <a href="#" class="mobile-menu__link" target="_blank" rel="noopener"
+              >Careers <span class="mobile-menu__arrow"><img src="https://static.shoeprize.com/flatten/icon-arrow-w.png" alt=""></span></a
+            >
+          </li>
+          <li class="mobile-menu__item">
+            <a href="#" class="mobile-menu__link" data-menu-link>Contact Us</a>
+          </li>
+        </ul>
+        <div class="mobile-menu__cta-wrap">
+          <a href="#" class="mobile-menu__cta" target="_blank" rel="noopener"
+            >shoeprize <span><img src="https://static.shoeprize.com/flatten/icon-arrow-w.png" alt=""></span></a
+          >
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Floating Section Indicator -->
+    <nav
+      class="scroll-indicator"
+      id="scroll-indicator"
+      aria-label="페이지 위치 안내"
+    >
+      <button
+        class="scroll-indicator__dot active"
+        data-page="0"
+        aria-label="1페이지 히어로 섹션 이동"
+      ></button>
+      <button
+        class="scroll-indicator__dot"
+        data-page="1"
+        aria-label="2페이지 Why FLATTEN 섹션 이동"
+      ></button>
+      <button
+        class="scroll-indicator__dot"
+        data-page="2"
+        aria-label="3페이지 Our Solutions 섹션 이동"
+      ></button>
+      <button
+        class="scroll-indicator__dot"
+        data-page="3"
+        aria-label="4페이지 Campaign Highlights 섹션 이동"
+      ></button>
+      <button
+        class="scroll-indicator__dot"
+        data-page="4"
+        aria-label="5페이지 Newsroom 섹션 이동"
+      ></button>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content">
+      <!-- ========================================================
+         PAGE 1: HERO SECTION (WHITE BACKGROUND)
+         ======================================================== -->
+      <section
+        class="section section--hero"
+        id="page-1"
+        data-theme="light"
+        aria-label="히어로 가치 제안"
+      >
+        <h1 class="hero-title">
+          <!-- Desktop Layout (3 Lines) -->
+          <div class="hero-layout--desktop">
+            <!-- Line 1: EM [Video 1 PC] POWERING -->
+            <div class="hero-line">
+              <span class="hero-text-gradient">EM</span>
+              <div class="hero-img-box">
+                <video
+                  src="images/used/home-1-pc.mp4"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                ></video>
+              </div>
+              <span class="hero-text-gradient">POWERING</span>
+            </div>
+
+            <!-- Line 2: FANDOM & BRAND [Video 2 PC] -->
+            <div class="hero-line">
+              <span class="hero-text-gradient">FANDOM &amp; BRAND</span>
+              <div class="hero-img-box">
+                <video
+                  src="images/used/home-2-pc.mp4"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                ></video>
+              </div>
+            </div>
+
+            <!-- Line 3: THROUGH [Video 3 PC] DATA -->
+            <div class="hero-line">
+              <span class="hero-text-gradient">THROUGH</span>
+              <div class="hero-img-box hero-img-box3">
+                <video
+                  src="images/used/home-3-pc.mp4"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                ></video>
+              </div>
+              <span class="hero-text-gradient">DATA</span>
+            </div>
+          </div>
+
+          <!-- Mobile Layout (5 Lines) -->
+          <div class="hero-layout--mobile">
+            <!-- Line 1: EMPOWERING -->
+            <div class="hero-line">
+              <span class="hero-text-gradient">EMPOWERING</span>
+            </div>
+
+            <!-- Line 2: FANDOM -->
+            <div class="hero-line">
+              <span class="hero-text-gradient">FANDOM</span>
+            </div>
+
+            <!-- Line 3: & [Video 1 MO] BRAND -->
+            <div class="hero-line">
+              <span class="hero-text-gradient">&amp;</span>
+              <div class="hero-img-box">
+                <video
+                  src="images/used/home-1-mo.mp4"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                ></video>
+              </div>
+              <span class="hero-text-gradient">BRAND</span>
+            </div>
+
+            <!-- Line 4: THROUGH [Video 2 MO] -->
+            <div class="hero-line">
+              <span class="hero-text-gradient">THROUGH</span>
+              <div class="hero-img-box">
+                <video
+                  src="images/used/home-2-mo.mp4"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                ></video>
+              </div>
+            </div>
+
+            <!-- Line 5: DA [Video 3 MO] TA -->
+            <div class="hero-line">
+              <span class="hero-text-gradient">DA</span>
+              <div class="hero-img-box hero-img-box3">
+                <video
+                  src="images/used/home-3-mo.mp4"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                ></video>
+              </div>
+              <span class="hero-text-gradient">TA</span>
+            </div>
+          </div>
+        </h1>
+      </section>
+
+      <!-- ========================================================
+         PAGE 2: WHY FLATTEN (BLACK BACKGROUND)
+         ======================================================== -->
+      <section
+        class="section section--why"
+        id="page-2"
+        data-theme="dark"
+        aria-label="Why FLATTEN"
+      >
+        <div class="img-wrapper">
+          <img
+            class="why-collage__card why-collage__card--building"
+            src="images/flatten-7.webp"
+            alt="Kasina Building"
+          />
+          <img
+            class="why-collage__card why-collage__card--concert"
+            src="images/flatten-8.webp"
+            alt="Concert Stage Heart Hands"
+          />
+          <img
+            class="why-collage__card why-collage__card--phone"
+            src="images/flatten-6.webp"
+            alt="Shoeprize App HIDDEN QUEST"
+          />
+        </div>
+        <div class="text-wrapper">
+          <h2 class="why-title">
+            브랜드 팬덤을 지속 가능한<br class="hide-mobile" />
+            자산으로,<br class="hide-pc" />
+            데이터로 더<br class="hide-mobile" />
+            나은 고객 경험을 혁신하는<br class="hide-mobile" />
+            기술을 제공합니다.
+          </h2>
+          <p class="why-desc">
+            플래튼은 혁신적 IT 솔루션을 통해 한정판 론칭, 팬 참여형 캠페인,
+            커뮤니티 활성화, 브랜디드 드롭 커머스 최적화, 데이터 인사이트
+            분석까지.<span class="br-pc"></span> 브랜드가 팬덤과 함께 성장하는
+            모든 과정을 쉽고 강력하게 지원합니다.
+          </p>
+          <a href="#page-3">
+            <button class="btn btn--white">Why FLATTEN</button>
+          </a>
+        </div>
+      </section>
+
+      <!-- ========================================================
+         PAGE 3: OUR SOLUTIONS (PAGE 3)
+         ======================================================== -->
+      <section
+        class="section section--solutions"
+        id="page-3"
+        data-theme="dark"
+        aria-label="Our Solutions"
+      >
+        <div class="solutions-header">
+          <h2 class="solutions-title">
+            <a href="#" class="solutions-title__link">
+              Our Solutions
+              <img
+                src="images/icon-right-g.svg"
+                alt=""
+                class="solutions-title__icon"
+                aria-hidden="true"
+              />
+            </a>
+          </h2>
+        </div>
+
+        <!-- Solutions List (3 Rows) -->
+        <div class="solutions-list">
+          <!-- Row 1: Shoeprize -->
+          <div class="solution-row">
+            <div class="solution-row__logo">
+              <img src="images/logo-shoeprize.svg" alt="Shoeprize" />
+            </div>
+            <div class="solution-row__desc">
+              <p>
+                커뮤니티를 기반으로 팬이 직접 참여할 수 있게,<span
+                  class="br-pc"
+                ></span>
+                쇼핑을 넘어 경험과 소통이 함께하는 브랜디드 미디어 플랫폼
+              </p>
+            </div>
+          </div>
+
+          <!-- Row 2: FLATTEN ERP -->
+          <div class="solution-row">
+            <div class="solution-row__logo">
+              <img src="images/logo-erp.svg" alt="FLATTEN ERP" />
+            </div>
+            <div class="solution-row__desc">
+              <p>
+                브랜드가 온·오프라인 멀티채널 커머스 업무를<span
+                  class="br-pc"
+                ></span>
+                통합 관리할 수 있도록 돕는 스마트 커머스 비즈니스 솔루션
+              </p>
+            </div>
+          </div>
+
+          <!-- Row 3: FLATTEN Queue -->
+          <div class="solution-row">
+            <div class="solution-row__logo">
+              <img src="images/logo-queue.svg" alt="FLATTEN Queue" />
+            </div>
+            <div class="solution-row__desc">
+              <p>
+                브랜드가 직접 팬을 모으고 소통하며<span class="br-pc"></span>
+                팬들을 깊이 이해할 수 있도록 돕는 완전히 새로운 캠페인 솔루션
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+         PAGE 4: CAMPAIGN HIGHLIGHTS (WHITE BACKGROUND)
+         ======================================================== -->
+      <section
+        class="section section--campaigns"
+        id="page-4"
+        data-theme="light"
+        aria-label="Campaign Highlights"
+      >
+        <!-- Section Title -->
+        <div class="campaigns-header">
+          <h2 class="campaigns-title">
+            <a href="#" class="campaigns-title__link">
+              Campaign Highlights
+              <img
+                src="images/icon-right-g.svg"
+                alt=""
+                class="campaigns-title__icon"
+                aria-hidden="true"
+              />
+            </a>
+          </h2>
+        </div>
+
+        <!-- 4 Campaign Cards -->
+        <div class="campaigns-list">
+          <!-- Card 1: 슈프라이즈 히든퀘스트 -->
+          <article class="campaign-card campaign-card--1">
+            <div class="campaign-card__media">
+              <img
+                src="images/flatten-1.jpg"
+                alt="슈프라이즈의 오프라인 인증 기반 히든퀘스트 캠페인"
+                loading="lazy"
+              />
+            </div>
+            <div class="campaign-card__content">
+              <h3 class="campaign-card__title">
+                슈프라이즈의 오프라인 인증 기반 히든퀘스트 캠페인
+              </h3>
+              <div class="campaign-card__tags">
+                <span class="campaign-tag">shoeprize</span>
+                <span class="campaign-tag">QUEUE</span>
+              </div>
+              <p class="campaign-card__desc">
+                매장 방문과 앱을 기반 미션 수행을 통해 팬과 브랜드 간의 실질적인
+                접점과 참여 확장
+              </p>
+            </div>
+          </article>
+
+          <!-- Card 2: 마리아나관광청 사이판 러닝 -->
+          <article class="campaign-card campaign-card--2">
+            <div class="campaign-card__media">
+              <img
+                src="images/flatten-2.jpg"
+                alt="마리아나관광청 사이판 러닝 캠페인"
+                loading="lazy"
+              />
+            </div>
+            <div class="campaign-card__content">
+              <h3 class="campaign-card__title">
+                마리아나관광청 사이판 러닝 캠페인
+              </h3>
+              <div class="campaign-card__tags">
+                <span class="campaign-tag">shoeprize</span>
+                <span class="campaign-tag">QUEUE</span>
+              </div>
+              <p class="campaign-card__desc">
+                커뮤니티 기반 러너 모집과 콘텐츠 제작으로 브랜드 체험과 인식
+                전환 성과 도출
+              </p>
+            </div>
+          </article>
+
+          <!-- Card 3: EA FC25 × PSG -->
+          <article class="campaign-card campaign-card--3">
+            <div class="campaign-card__media">
+              <img
+                src="images/flatten-3.jpeg"
+                alt="EA FC25 × PSG FAN EXCLUSIVE 이벤트"
+                loading="lazy"
+              />
+            </div>
+            <div class="campaign-card__content">
+              <h3 class="campaign-card__title">
+                EA FC25 × PSG FAN EXCLUSIVE 이벤트
+              </h3>
+              <div class="campaign-card__tags">
+                <span class="campaign-tag">shoeprize</span>
+                <span class="campaign-tag">QUEUE</span>
+              </div>
+              <p class="campaign-card__desc">
+                온·오프라인 통합 캠페인을 통해 게임 타이틀 프로모션 및 오프라인
+                매장 방문까지 유도
+              </p>
+            </div>
+          </article>
+
+          <!-- Card 4: 신한은행 × SSG랜더스 -->
+          <article class="campaign-card campaign-card--4">
+            <div class="campaign-card__media">
+              <img
+                src="images/flatten-4.jpeg"
+                alt="신한은행 × SSG랜더스 적금 캠페인"
+                loading="lazy"
+              />
+            </div>
+            <div class="campaign-card__content">
+              <h3 class="campaign-card__title">
+                신한은행 × SSG랜더스 적금 캠페인
+              </h3>
+              <div class="campaign-card__tags">
+                <span class="campaign-tag">shoeprize</span>
+                <span class="campaign-tag">QUEUE</span>
+              </div>
+              <p class="campaign-card__desc">
+                한정판 굿즈를 활용한 팬 참여 기반 적금 전환 유도로 27억 잔액
+                유치
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ========================================================
+         PAGE 5: NEWSROOM (BLACK BACKGROUND, SWIPER)
+         ======================================================== -->
+      <section
+        class="section section--newsroom"
+        id="page-5"
+        data-theme="dark"
+        aria-label="Newsroom"
+      >
+        <div class="newsroom-header">
+          <h2 class="newsroom-title">
+            <a href="#" class="newsroom-title__link">
+              Newsroom
+              <img
+                src="images/icon-right-g.svg"
+                alt=""
+                class="newsroom-title__icon"
+                aria-hidden="true"
+              />
+            </a>
+          </h2>
+        </div>
+
+        <div class="newsroom-swiper">
+          <div class="swiper" id="newsroom-swiper">
+            <div class="swiper-wrapper">
+              <div class="swiper-slide">
+                <div class="news-page">
+                  <a href="#" class="news-card">
+                    <div class="news-card__media">
+                      <img
+                        src="images/flatten-3.jpeg"
+                        alt="수백 명이 줄을 서도, 혼선 없이 운영한다"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="news-card__body">
+                      <span class="news-card__cat">SUCCESS STORY</span>
+                      <h3 class="news-card__title">
+                        수백 명이 줄을 서도, 혼선 없이 운영한다
+                      </h3>
+                      <p class="news-card__desc">
+                        훕시티, 플래튼 큐로 오프라인 선착순 이벤트를 정교하게
+                        운영한 성공 사례
+                      </p>
+                      <time class="news-card__date">2025.04</time>
+                    </div>
+                  </a>
+                  <a href="#" class="news-card">
+                    <div class="news-card__media">
+                      <img
+                        src="images/flatten-2.jpg"
+                        alt="플래튼, 마리아나관광청과 함께 팬덤 기반 러닝 캠페인을 선보이다"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="news-card__body">
+                      <span class="news-card__cat">NEWS</span>
+                      <h3 class="news-card__title">
+                        플래튼, 마리아나관광청과 함께 팬덤 기반 러닝 캠페인을
+                        선보이다
+                      </h3>
+                      <p class="news-card__desc">
+                        커뮤니티 기반 러너 모집과 콘텐츠 제작으로 브랜드 체험을
+                        확장합니다
+                      </p>
+                      <time class="news-card__date">2025.03</time>
+                    </div>
+                  </a>
+                  <a href="#" class="news-card">
+                    <div class="news-card__media">
+                      <img
+                        src="images/flatten-6.webp"
+                        alt="재고가 브랜드를 흔들지 않도록"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="news-card__body">
+                      <span class="news-card__cat">SERVICE</span>
+                      <h3 class="news-card__title">
+                        재고가 브랜드를 흔들지 않도록
+                      </h3>
+                      <p class="news-card__desc">
+                        브랜드의 가치를 지켜주는 재고 관리
+                      </p>
+                      <time class="news-card__date">2025.03</time>
+                    </div>
+                  </a>
+                </div>
+              </div>
+              <div class="swiper-slide">
+                <div class="news-page">
+                  <a href="#" class="news-card">
+                    <div class="news-card__media">
+                      <img
+                        src="images/flatten-1.jpg"
+                        alt="슈프라이즈 히든퀘스트, 오프라인 팬 참여를 연결하다"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="news-card__body">
+                      <span class="news-card__cat">NEWS</span>
+                      <h3 class="news-card__title">
+                        슈프라이즈 히든퀘스트, 오프라인 팬 참여를 연결하다
+                      </h3>
+                      <p class="news-card__desc">
+                        매장 방문과 앱 미션으로 팬과 브랜드의 접점을 넓힌 캠페인
+                      </p>
+                      <time class="news-card__date">2025.02</time>
+                    </div>
+                  </a>
+                  <a href="#" class="news-card">
+                    <div class="news-card__media">
+                      <img
+                        src="images/flatten-7.webp"
+                        alt="멀티채널 커머스, 하나의 화면에서 관리하다"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="news-card__body">
+                      <span class="news-card__cat">SERVICE</span>
+                      <h3 class="news-card__title">
+                        멀티채널 커머스, 하나의 화면에서 관리하다
+                      </h3>
+                      <p class="news-card__desc">
+                        온·오프라인 주문과 재고를 통합 관리하는 FLATTEN ERP
+                      </p>
+                      <time class="news-card__date">2025.02</time>
+                    </div>
+                  </a>
+                  <a href="#" class="news-card">
+                    <div class="news-card__media">
+                      <img
+                        src="images/flatten-3.jpeg"
+                        alt="EA FC25 × PSG, 온·오프라인 팬 이벤트 성과 공개"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="news-card__body">
+                      <span class="news-card__cat">SUCCESS STORY</span>
+                      <h3 class="news-card__title">
+                        EA FC25 × PSG, 온·오프라인 팬 이벤트 성과 공개
+                      </h3>
+                      <p class="news-card__desc">
+                        게임 타이틀 프로모션과 오프라인 매장 방문까지 이끈 통합
+                        캠페인
+                      </p>
+                      <time class="news-card__date">2025.01</time>
+                    </div>
+                  </a>
+                </div>
+              </div>
+              <div class="swiper-slide">
+                <div class="news-page">
+                  <a href="#" class="news-card">
+                    <div class="news-card__media">
+                      <img
+                        src="images/flatten-4.jpeg"
+                        alt="신한은행 × SSG랜더스 적금 캠페인, 27억 잔액 유치"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="news-card__body">
+                      <span class="news-card__cat">NEWS</span>
+                      <h3 class="news-card__title">
+                        신한은행 × SSG랜더스 적금 캠페인, 27억 잔액 유치
+                      </h3>
+                      <p class="news-card__desc">
+                        한정판 굿즈를 활용한 팬 참여 기반 적금 전환 유도
+                      </p>
+                      <time class="news-card__date">2024.12</time>
+                    </div>
+                  </a>
+                  <a href="#" class="news-card">
+                    <div class="news-card__media">
+                      <img
+                        src="images/flatten-8.webp"
+                        alt="팬을 이해하는 데이터 인사이트 리포트"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="news-card__body">
+                      <span class="news-card__cat">SERVICE</span>
+                      <h3 class="news-card__title">
+                        팬을 이해하는 데이터 인사이트 리포트
+                      </h3>
+                      <p class="news-card__desc">
+                        캠페인 참여 데이터를 한눈에 확인하고 다음 전략에
+                        활용하세요
+                      </p>
+                      <time class="news-card__date">2024.12</time>
+                    </div>
+                  </a>
+                  <a href="#" class="news-card">
+                    <div class="news-card__media">
+                      <img
+                        src="images/flatten-6.webp"
+                        alt="플래튼 큐, 대기열 없는 한정판 론칭을 지원하다"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="news-card__body">
+                      <span class="news-card__cat">NEWS</span>
+                      <h3 class="news-card__title">
+                        플래튼 큐, 대기열 없는 한정판 론칭을 지원하다
+                      </h3>
+                      <p class="news-card__desc">
+                        대규모 트래픽에도 안정적인 팬 참여형 캠페인 솔루션
+                      </p>
+                      <time class="news-card__date">2024.11</time>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="newsroom-nav">
+            <div class="newsroom-pagination" id="newsroom-pagination"></div>
+            <div class="newsroom-arrows">
+              <button
+                class="newsroom-arrow"
+                id="newsroom-prev"
+                aria-label="이전 뉴스"
+              >
+                &#8249;
+              </button>
+              <button
+                class="newsroom-arrow"
+                id="newsroom-next"
+                aria-label="다음 뉴스"
+              >
+                &#8250;
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer" id="site-footer">
+      <div class="footer__inner">
+        <div class="footer__top">
+          <a href="/" class="footer__logo" aria-label="FLATTEN">
+            <img src="images/logo-flatten-g.svg" alt="FLATTEN" />
+          </a>
+          <ul class="footer__nav">
+            <li><a href="#page-2">Why FLATTEN</a></li>
+            <li>
+              <a href="#page-3">Our Solutions</a>
+              <ul class="footer__sub">
+                <li><a href="#page-3">shoeprize</a></li>
+                <li><a href="#page-3">FLATTEN ERP</a></li>
+                <li><a href="#page-3">FLATTEN QUEUE</a></li>
+              </ul>
+            </li>
+            <li><a href="#page-4">All Campaigns</a></li>
+            <li><a href="#page-5">Newsroom</a></li>
+            <li>
+              <a href="#" target="_blank" rel="noopener">Careers &#8599;</a>
+            </li>
+            <li><a href="#">Contact Us</a></li>
+          </ul>
+        </div>
+        <hr class="footer__divider" />
+        <p class="footer__name">FLATTEN Co., Ltd.</p>
+        <p class="footer__info">
+          <span class="footer__info-line">CEO: Lee Sang In</span
+          ><span class="sep">|</span>
+          <span class="footer__info-line footer__info-line--addr"
+            >Address: L117, L1 Floor, 15, Nonhyeon-ro 152-gil, Gangnam-gu,
+            Seoul, Republic of Korea</span
+          ><span class="sep">|</span>
+          <span class="footer__info-line footer__info-line--biz"
+            >Business Registration No: 637-87-01821</span
+          >
+        </p>
+        <a href="/" class="footer__bottom-logo" aria-label="FLATTEN">
+          <img src="images/logo-flatten-g.svg" alt="FLATTEN" />
+        </a>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <!-- Interactive JavaScript -->
+    <script src="./js/main.js"></script>
+  </body>
+</html>

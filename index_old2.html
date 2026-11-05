@@ -188,8 +188,8 @@
       /* Mobile Hamburger Button */
       .header__hamburger {
         display: none;
-        width: 32px;
-        height: 32px;
+        width: 24px;
+        height: 24px;
         position: relative;
         align-items: center;
         justify-content: center;
@@ -200,7 +200,7 @@
 
       .header__hamburger span {
         display: block;
-        width: 22px;
+        width: 20px;
         height: 2px;
         background-color: currentColor;
         transition:
@@ -212,18 +212,16 @@
        Mobile Menu Drawer (slide from right)
        ======================================================== */
       .mobile-menu {
+        display: flex;
+        flex-direction: column;
         position: fixed;
         top: 0;
         right: 0;
         width: 100%;
         height: 100vh;
-        height: 100dvh;
         background-color: #000;
         color: #fff;
         z-index: 1100;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
         transform: translateX(100%);
         visibility: hidden;
         transition:
@@ -237,6 +235,16 @@
         transition:
           transform 0.4s cubic-bezier(0.25, 1, 0.5, 1),
           visibility 0s;
+      }
+      .header--inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+      }
+      .header--inner .logo {
+        height: 14px;
+        filter: invert(1);
       }
       .mobile-menu__close {
         position: absolute;
@@ -253,7 +261,7 @@
       .mobile-menu__close::after {
         content: "";
         position: absolute;
-        width: 14px;
+        width: 22px;
         height: 1.5px;
         background: #fff;
       }
@@ -264,16 +272,21 @@
         transform: rotate(-45deg);
       }
       .mobile-menu__inner {
-        min-height: 100%;
-        padding: 56px 22px 40px;
         display: flex;
+        flex: 1;
         flex-direction: column;
+        height: 100vh;
       }
       .mobile-menu__list {
         list-style: none;
+        flex: 1;
+        padding: 0 clamp(16px, 4.26667vw, 9999px);
+        overflow-y: auto;
+        height: 100%;
+        scrollbar-width: none;
       }
       .mobile-menu__item {
-        border-bottom: 1px solid #1f1f1f;
+        border-bottom: 1px solid #333;
       }
       .mobile-menu__item:last-child {
         border-bottom: 0;
@@ -281,30 +294,28 @@
       .mobile-menu__link {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 24px 0;
-        font-size: 28px;
+        /* gap: 10px; */
+        padding: clamp(14px, 3.73333vw, 9999px) 0;
+        font-size: clamp(22px, 5.86667vw, 9999px);
         font-weight: 700;
-        letter-spacing: -0.02em;
-        line-height: 1.2;
+        line-height: 1.4;
       }
       .mobile-menu__link--static {
         padding-bottom: 20px;
       }
       .mobile-menu__sub {
         list-style: none;
-        padding: 0 0 36px 10px;
+        padding: 0 0 clamp(22px, 3.73333vw, 9999px) 0;
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: clamp(7px, 1.6vw, 9999px);
       }
       .mobile-menu__sub a {
         display: flex;
         align-items: center;
-        gap: 12px;
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
+        gap: clamp(2px, .53333vw, 9999px);
+        font-size: clamp(18px, 4.8vw, 9999px);
+        font-weight: 600;
         line-height: 1.3;
       }
       .mobile-menu__sub a::before {
@@ -318,34 +329,36 @@
         flex-shrink: 0;
       }
       .mobile-menu__arrow {
-        font-size: 0.8em;
-        font-weight: 400;
+        width: clamp(24px, 6.4vw, 9999px);
+        height: clamp(24px, 6.4vw, 9999px);
+      }
+      .mobile-menu__arrow img {
+        width: 100%;
+        height: 100%;
+      }
+      .mobile-menu__cta-wrap {
+        padding: clamp(20px, 5.33333vw, 9999px) clamp(16px, 4.26667vw, 9999px);;
       }
       .mobile-menu__cta {
         margin-top: auto;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        height: 56px;
-        border: 1px solid #555;
-        border-radius: 4px;
-        font-size: 16px;
+        border: 1px solid #fff;
+        border-radius: clamp(4px, 1.06667vw, 9999px);
+        padding: clamp(12px, 3.2vw, 9999px);
+        font-size: clamp(13px, 3.46667vw, 9999px);
         font-weight: 500;
       }
-      .mobile-menu__cta-wrap {
-        margin-top: 40px;
-        padding-top: 0;
+      .mobile-menu__cta img {
+        width: clamp(16px, 4.26667vw, 9999px);
+        height: clamp(16px, 4.26667vw, 9999px);
       }
       html.menu-open {
         overflow: hidden;
       }
 
-      @media (max-width: 768px) {
-        .mobile-menu {
-          display: block;
-        }
-      }
+      
 
       /* 4. Fullpage Scroll Snap Sections */
       .section {
@@ -387,7 +400,7 @@
         align-items: flex-start;
       }
       .section--hero .hero-title {
-        height: calc(100vh - var(--header-height));
+        height: calc(92vh - var(--header-height));
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -437,27 +450,57 @@
         word-break: keep-all;
       }
 
-      /* 인트로: 텍스트 투명도 0.3 → (왼쪽에서 오른쪽으로 흐르듯) 1 */
+      /* ========================================================
+       HERO 인트로 애니메이션 요약 (타이밍은 아래 변수로 한 번에 조절)
+       1) 텍스트가 투명도 0.3으로 잠시 머무름 (--hero-hold)
+       2) 줄 순서대로 --hero-stagger 간격을 두고, 왼쪽→오른쪽으로 색이 번지듯 채워짐 (투명도 0.3 → 1)
+       3) 마지막 줄이 다 채워지고 --hero-hold 만큼 유지한 뒤,
+          이미지박스가 width 0 → 살짝 더 벌어짐(overshoot) → 제자리로 빠르게 복귀
+          (텍스트도 gap이 같은 방식으로 벌어졌다 돌아오며 좌우로 밀림)
+       ======================================================== */
+      .hero-layout--desktop,
+      .hero-layout--mobile {
+        --hero-hold: 0.3s; /* 투명도 0.3 / 1 상태 유지 시간 */
+        --hero-stagger: 0.2s; /* 줄 간 시작 간격 */
+        --hero-fill-dur: 2.2s; /* 한 줄이 채워지는 시간 */
+        --hero-bounce-dur: 0.9s; /* 박스가 펼쳐졌다 돌아오는 총 시간 (짧을수록 빠름) */
+        --hero-overshoot: 1.15; /* 박스 너비 튕김 정도 (1 = 튕김 없음, 1.08 = 8% 더 벌어짐) */
+        --hero-gap-overshoot: 1.4; /* 텍스트-박스 간격 튕김 정도 */
+        /* 박스 펼침 시작 시점 = 첫 대기 + 마지막 줄 시작 + 채움 시간 + 유지 시간 */
+        --hero-open-delay: calc(
+          var(--hero-hold) + var(--last-li) * var(--hero-stagger) +
+            var(--hero-fill-dur) + -1.2s
+        );
+      }
+      .hero-layout--desktop {
+        --last-li: 2; /* 마지막 줄 index (3줄) */
+      }
+      .hero-layout--mobile {
+        --last-li: 4; /* 마지막 줄 index (5줄) */
+      }
+      
+      /* 텍스트 채움: 투명도 0.3 → (왼쪽에서 오른쪽으로 번지듯) 1 */
       .hero-text-gradient {
-        /* 300% 크기 그라데이션: 오른쪽 끝(100%)=투명도 0.3, 왼쪽 끝(0%)=검정(1) */
+        /* 400% 크기의 넓은 그라데이션 → 색이 퍼지는 경계(번짐)가 글자 폭의 약 2배로 넓어져 부드럽게 보임
+           오른쪽 끝(100%)=투명도 0.3, 왼쪽 끝(0%)=검정(1) */
         background-image: linear-gradient(
           90deg,
           rgba(0, 0, 0, 1) 0%,
-          rgba(0, 0, 0, 1) 33.33%,
-          rgba(0, 0, 0, 0.3) 66.66%,
-          rgba(0, 0, 0, 0.3) 100%
+          rgba(0, 0, 0, 1) 25%,
+          rgba(0, 0, 0, 0.12) 75%,
+          rgba(0, 0, 0, 0.12) 100%
         );
         background-repeat: no-repeat;
-        background-size: 300% 100%;
+        background-size: 400% 100%;
         background-position: 100% 0;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         display: inline-block;
         vertical-align: middle;
-        /* 0.3초 유지(delay) 후, 줄 순서대로 0.3초 간격으로 채워짐 */
-        animation: heroTextFill 0.9s cubic-bezier(0.4, 0, 0.2, 1)
-          calc(0.3s + var(--li, 0) * 0.5s) forwards;
+        /* 첫 유지 시간(delay) 후, 줄 순서대로 간격을 두고 채워짐 */
+        animation: heroTextFill var(--hero-fill-dur) cubic-bezier(0.4, 0, 0.2, 1)
+          calc(var(--hero-hold) + var(--li, 0) * var(--hero-stagger)) forwards;
       }
       @keyframes heroTextFill {
         from {
@@ -469,15 +512,17 @@
       }
 
       .hero-line {
+        --line-gap: 0.18em; /* 최종 gap (모바일은 아래에서 0.12em으로 덮어씀) */
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.18em;
+        gap: var(--line-gap);
         white-space: nowrap;
         letter-spacing: -0.03em;
         margin: calc(20 / 1920 * 100vw) 0;
-        /* 이미지박스가 펼쳐질 때 텍스트가 좌우로 벌어짐 */
-        animation: heroLineGap 0.9s cubic-bezier(0.65, 0, 0.35, 1) 2.1s backwards;
+        /* 이미지박스가 펼쳐질 때 텍스트가 좌우로 살짝 더 벌어졌다 제자리로 복귀 */
+        animation: heroLineGap var(--hero-bounce-dur) ease-in-out
+          var(--hero-open-delay) backwards;
       }
       .hero-line:nth-child(1) {
         --li: 0;
@@ -494,15 +539,28 @@
       .hero-line:nth-child(5) {
         --li: 4;
       }
+      /* gap: 0 → 목표보다 살짝 크게(튕김) → 목표값으로 복귀 */
       @keyframes heroLineGap {
-        from {
+        0% {
           gap: 0;
         }
+        65% {
+          gap: calc(var(--line-gap) * var(--hero-gap-overshoot));
+        }
+        100% {
+          gap: var(--line-gap);
+        }
       }
-      /* 마지막 줄 채움 종료(0.3+0.6+0.9=1.8s) + 0.3s 유지 = 2.1s 후 박스 펼침 */
+      /* 박스 width: 0 → 목표보다 살짝 크게(튕김) → 목표값으로 복귀 (JS의 animationend 이름과 동일해야 함) */
       @keyframes heroBoxOpen {
-        from {
+        0% {
           width: 0;
+        }
+        65% {
+          width: calc(var(--box-w) * var(--hero-overshoot));
+        }
+        100% {
+          width: var(--box-w);
         }
       }
 
@@ -511,16 +569,19 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        --box-w: 1.55em; /* 최종 너비 (모바일은 아래에서 1.45em으로 덮어씀) */
         height: 0.88em;
-        width: 1.55em;
-        overflow: hidden;
+        width: var(--box-w);
         vertical-align: middle;
         position: relative;
-        flex-shrink: 0;
-        border-radius: 4px;
+        /* flex-shrink: 0; */
+        border-radius: calc(5 / 1920 * 100vw);
         overflow: hidden;
+        box-sizing: border-box;
         /* box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); */
-        animation: heroBoxOpen 0.9s cubic-bezier(0.65, 0, 0.35, 1) 2.1s backwards;
+        /* 텍스트가 모두 채워진 뒤 펼침 시작. backwards → 대기 중에는 width 0 유지 */
+        animation: heroBoxOpen var(--hero-bounce-dur) ease-in-out
+          var(--hero-open-delay) backwards;
       }
       @media (prefers-reduced-motion: reduce) {
         .hero-text-gradient,
@@ -539,7 +600,7 @@
         height: 100%;
         object-fit: cover;
         display: block;
-        border-radius: 4px;
+        border-radius: calc(5 / 1920 * 100vw);
         overflow: hidden;
       }
 
@@ -745,6 +806,8 @@
         will-change: opacity, translate;
       }
       .section--why.is-revealed .why-reveal-item {
+        border-radius: 4px;
+        overflow: hidden;
         opacity: 1;
         translate: 0 0;
         transition:
@@ -1012,29 +1075,33 @@
 
       .campaign-card__title {
         font-size: clamp(16px, 1.2vw, 20px);
-        font-weight: 700;
-        letter-spacing: -0.02em;
+        font-weight: 600;
         line-height: 1.5;
         color: var(--color-black);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
         word-break: keep-all;
+        word-wrap: break-word;
       }
 
       .campaign-card__tags {
         display: flex;
         align-items: center;
         gap: clamp(6px, 0.3125vw, 9999px);
-        margin-top: clamp(12px, 0.625vw, 9999px);
-        margin-bottom: clamp(16px, 0.83333vw, 9999px);
+        margin-top: clamp(12px, .625vw, 9999px);
+        margin-bottom: clamp(16px, .83333vw, 9999px);
       }
 
       .campaign-tag {
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 500;
         color: #333333;
         background-color: #e9e9e9;
         padding: 2px 7px;
         border-radius: 2px;
-        letter-spacing: 0.2px;
         display: inline-block;
       }
 
@@ -1324,8 +1391,14 @@
       /* ========================================================
        6. Mobile Layout (< 768px)
        ======================================================== */
-
       @media (max-width: 1024px) {
+        .mobile-menu {
+          display: block;
+        }
+        /* .section--hero {
+          height: calc(100dvh - 112px);
+          min-height: calc(100dvh - 112px);
+        } */
         .news-page {
           column-gap: 20px;
         }
@@ -1369,7 +1442,7 @@
         /* .inner-box {
         padding: 0 20px;
       } */
-
+        
         /* Section 1 Hero Mobile (5-Line Layout) */
         .hero-layout--desktop {
           display: none;
@@ -1380,22 +1453,34 @@
           flex-direction: column;
           align-items: center;
           width: 100%;
-          font-size: clamp(38px, 11.5vw, 64px);
+          font-size: clamp(52px, 11.5vw, 64px);
         }
 
         .hero-layout--mobile .hero-line {
-          gap: 0.12em;
+          --line-gap: 0.12em;
           margin: 0.05em 0;
         }
-
         .hero-layout--mobile .hero-img-box {
-          height: 0.82em;
-          width: 1.45em;
+          /* height: 0.82em; */
+          /* --box-w: 1.45em; */
+          width: calc(84 / 375 * 100vw);
+          /* height: calc(52 / 375 * 100vw); */
+          aspect-ratio: 84 / 52;
         }
-
+        .hero-img-box img,
+        .hero-img-box video {
+          border-radius: calc(4 / 375 * 100vw);
+        }
+        .hero-title {
+          line-height: 1.2;
+          letter-spacing: calc(52 / 375 * 100vw);
+        }
+        .hero-line:first-child .hero-text-gradient {
+          letter-spacing: calc(-3.12 / 375 * 100vw);
+        }
         /* Section 2 Why FLATTEN Mobile */
         .section--why {
-          padding: clamp(80px, 21.33333vw, 9999px)
+          padding: clamp(130px, 21.33333vw, 9999px)
             clamp(16px, 4.26667vw, 9999px) clamp(40px, 10.66667vw, 9999px);
         }
         .img-wrapper {
@@ -1468,7 +1553,9 @@
         .solutions-title {
           font-size: clamp(22px, 8vw, 28px);
         }
-
+        .solutions-title__link {
+          gap: 0;
+        }
         .solutions-title__icon {
           width: clamp(36px, 9.6vw, 9999px);
           height: clamp(36px, 9.6vw, 9999px);
@@ -1539,10 +1626,9 @@
           font-size: clamp(20px, 5.33333vw, 9999px);
           line-height: 1.4;
         }
-        /* 
-      .campaign-card__tags {
-        margin-bottom: 8px;
-      } */
+        .campaigns-title__link {
+          gap: 0;
+        }
 
         .campaign-tag {
           font-size: 12.5px;
@@ -1691,11 +1777,17 @@
       aria-hidden="true"
       aria-label="모바일 메뉴"
     >
+    <div class="header--inner">
+      <a href="#">
+        <img class="logo" src="images/logo-flatten.svg" alt="">
+      </a>
       <button
         class="mobile-menu__close"
         id="menu-close-btn"
         aria-label="메뉴 닫기"
       ></button>
+    </div>
+      
       <div class="mobile-menu__inner">
         <ul class="mobile-menu__list">
           <li class="mobile-menu__item">
@@ -1728,7 +1820,7 @@
           </li>
           <li class="mobile-menu__item">
             <a href="#" class="mobile-menu__link" target="_blank" rel="noopener"
-              >Careers <span class="mobile-menu__arrow">&#8599;</span></a
+              >Careers <span class="mobile-menu__arrow"><img src="https://static.shoeprize.com/flatten/icon-arrow-w.png" alt=""></span></a
             >
           </li>
           <li class="mobile-menu__item">
@@ -1737,7 +1829,7 @@
         </ul>
         <div class="mobile-menu__cta-wrap">
           <a href="#" class="mobile-menu__cta" target="_blank" rel="noopener"
-            >shoeprize <span>&#8599;</span></a
+            >shoeprize <span><img src="https://static.shoeprize.com/flatten/icon-arrow-w.png" alt=""></span></a
           >
         </div>
       </div>
