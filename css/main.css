@@ -1006,7 +1006,7 @@ html.menu-open {
 .solutions-header {
   width: 75%;
   text-align: left;
-  margin-bottom: 24px;
+  margin-bottom: clamp(24px, 2.5vw, 40px);
 }
 
 .solutions-title {
@@ -1139,9 +1139,9 @@ html.menu-open {
   transition: opacity 0.2s ease;
 }
 
-.campaigns-title__link:hover {
+/* .campaigns-title__link:hover {
   opacity: 0.7;
-}
+} */
 
 .campaigns-title__icon {
   width: clamp(56px, 2.91667vw, 9999px);
@@ -1566,7 +1566,7 @@ html.menu-open {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  /* gap: clamp(60px, 3.125vw, 9999px); */
+  gap: clamp(60px, 3.125vw, 9999px);
   padding: clamp(80px, 4.16667vw, 9999px) 0 clamp(160px, 8.33333vw, 9999px) 0;
 }
 
@@ -1597,7 +1597,7 @@ html.menu-open {
   line-height: 1.6;
   max-width: 1200px;
   margin: 0 auto;
-  word-break: keep-all;
+  text-align: center;
 }
 
 /* Solution Item Cards */
@@ -1615,8 +1615,12 @@ html.menu-open {
 } */
 
 .our-solution-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   width: 100%;
+  height: 100%;
   background-color: #f7f7f7;
 }
 
@@ -1777,7 +1781,7 @@ html.menu-open {
     flex-direction: column;
     align-items: center;
     width: 100%;
-    font-size: clamp(52px, 11.5vw, 64px);
+    font-size: calc(52 / 375 * 100vw)
   }
 
   .hero-layout--mobile .hero-line {
@@ -1816,7 +1820,9 @@ html.menu-open {
     width: 100%;
     aspect-ratio: 343 / 239;
   }
-
+  .img-wrapper > img {
+    border-radius: clamp(4px, 1.06667vw, 9999px);
+  }
   .why-collage {
     width: 100%;
     max-width: 340px;
@@ -1825,41 +1831,52 @@ html.menu-open {
   }
 
   .why-collage__card--building {
-    width: 125px;
+    width: calc(116 / 375 * 100vw);
     height: auto;
-    left: 0;
-    top: 30px;
+    top: 14.6%;
+    left: 1.75%;
+    aspect-ratio: 116 / 87;
   }
 
   .why-collage__card--concert {
-    width: 190px;
+    width: calc(176 / 375 * 100vw);
     height: auto;
-    right: 0;
+    right: 4.7%;
     top: 0;
+    aspect-ratio: 176 / 122;
   }
 
   .why-collage__card--phone {
-    width: 200px;
-    height: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 85px;
+    width: calc(182 / 375 * 100vw);
+    aspect-ratio: 182 / 143;
+    bottom: 0;
+    left: 17.5%;
   }
 
   .why-title {
-    font-size: clamp(28px, 6.2vw, 40px);
+    font-size: clamp(28px, 7.46667vw, 9999px);
     line-height: 1.4;
     text-align: left;
   }
 
   .why-desc {
-    font-size: 15px;
+    font-size: clamp(15px, 4vw, 9999px);
     line-height: 1.6;
     text-align: left;
   }
-
+  .btn {
+    padding: clamp(6px, 1.6vw, 9999px) clamp(12px, 3.2vw, 9999px);
+    width: clamp(115px, 30.66667vw, 9999px);
+    height: clamp(33px, 8.8vw, 9999px);
+    font-size: clamp(13px, 3.46667vw, 9999px);
+    font-weight: 700;
+    line-height: 1.6;
+    border-radius: clamp(4px, 1.06667vw, 9999px);
+    word-break: keep-all;
+  }
   .img-wrapper .btn {
     align-self: flex-start;
+    border: 2px solid rgb(255, 244, 90);
   }
 
   .text-wrapper {
@@ -1874,6 +1891,7 @@ html.menu-open {
   /* Section 3 Solutions Mobile */
   .section--solutions {
     padding: clamp(80px, 21.33333vw, 9999px) clamp(16px, 4.26667vw, 9999px) clamp(40px, 10.66667vw, 9999px);
+    gap: clamp(20px, 5.33333vw, 9999px);
   }
 
   /* .solutions-container {
@@ -1881,10 +1899,11 @@ html.menu-open {
   } */
   .solutions-header {
     width: 100%;
+    margin-bottom: 0;
   }
 
   .solutions-title {
-    font-size: clamp(22px, 8vw, 28px);
+    font-size: clamp(28px, 7.46667vw, 9999px);
   }
 
   .solutions-title__link {
@@ -1904,8 +1923,8 @@ html.menu-open {
   .solution-row {
     flex-direction: column;
     align-items: flex-start;
-    padding: 32px 0;
-    gap: 20px;
+    gap: clamp(24px, 6.4vw, 9999px);
+    padding: clamp(32px, 8.53333vw, 9999px) 0;
   }
 
   .solution-row__logo {
@@ -1913,9 +1932,11 @@ html.menu-open {
     max-width: 100%;
     width: 100%;
   }
-
+  .erp {
+    padding-top: clamp(4px, 1.06667vw, 9999px);
+  }
   .solution-row__logo img {
-    height: clamp(17px, 4.53333vw, 9999px);
+    height: clamp(18px, 4.8vw, 9999px);
     width: auto;
   }
 
@@ -1924,7 +1945,7 @@ html.menu-open {
   }
 
   .solution-row__desc p {
-    font-size: 14px;
+    font-size: clamp(15px, 4vw, 9999px);
     line-height: 1.6;
   }
 
@@ -1939,7 +1960,8 @@ html.menu-open {
   }
 
   .campaigns-title {
-    font-size: clamp(22px, 7vw, 28px);
+    font-size: clamp(28px, 7.46667vw, 9999px);
+    margin-bottom: clamp(24px, 6.4vw, 9999px);
   }
 
   .campaigns-title__icon {
@@ -1954,12 +1976,16 @@ html.menu-open {
     flex-direction: column;
     gap: clamp(48px, 12.8vw, 9999px);
   }
-
+  .campaign-card__media {
+    border-radius: clamp(4px, 1.06667vw, 9999px);
+  }
   .campaign-card--2,
   .campaign-card--4 {
     margin-top: 0 !important;
   }
-
+  .campaign-card__content {
+    padding-top: clamp(16px, 4.26667vw, 9999px);
+  }
   .campaign-card__title {
     font-size: clamp(20px, 5.33333vw, 9999px);
     line-height: 1.4;
@@ -1968,15 +1994,20 @@ html.menu-open {
   .campaigns-title__link {
     gap: 0;
   }
-
+  .campaign-card__tags {
+    gap: clamp(6px, 1.6vw, 9999px);
+        margin-top: clamp(12px, 3.2vw, 9999px);
+        margin-bottom: clamp(10px, 2.66667vw, 9999px);
+  }
   .campaign-tag {
-    font-size: 12.5px;
-    padding: 2px 6px;
+        padding: clamp(1px, .26667vw, 9999px) clamp(6px, 1.6vw, 9999px);
+        font-size: clamp(12.5px, 3.33333vw, 9999px);
+        border-radius: clamp(4px, 1.06667vw, 9999px);
   }
 
   .campaign-card__desc {
-    font-size: 15px;
-    line-height: 1.5;
+        font-size: clamp(15px, 4vw, 9999px);
+        line-height: 1.6;
   }
 
   .section--newsroom {
@@ -1985,11 +2016,11 @@ html.menu-open {
 
   .newsroom-header {
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: clamp(24px, 6.4vw, 9999px);
   }
 
   .newsroom-title {
-    font-size: clamp(22px, 7vw, 28px);
+    font-size: clamp(28px, 7.46667vw, 9999px);
   }
 
   .newsroom-title__icon {
@@ -2010,13 +2041,35 @@ html.menu-open {
 
   .news-card__title {
     font-size: clamp(18px, 4.8vw, 9999px);
+    margin-top: 0;
+    margin-bottom: clamp(8px, 2.13333vw, 9999px);
     line-height: 1.4;
   }
-
-  .news-card__desc {
-    font-size: 14px;
+  .news-card__media {
+    aspect-ratio: 343 / 228;
+    border-radius: clamp(4px, 1.06667vw, 9999px);
+    margin-bottom: clamp(16px, 4.26667vw, 9999px);
   }
-
+  .news-card__desc {
+    margin-bottom: clamp(8px, 2.13333vw, 9999px);
+    font-size: clamp(14px, 3.73333vw, 9999px);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: keep-all;
+    word-wrap: break-word;
+  }
+  .news-card__cat {
+    color: #b8b8b8;
+        margin-bottom: clamp(8px, 2.13333vw, 9999px);
+        font-size: clamp(11px, 2.93333vw, 9999px);
+  }
+  .news-card__date {
+    font-size: clamp(14px, 3.73333vw, 9999px);
+  }
   .newsroom-arrows {
     display: none;
   }
@@ -2095,6 +2148,7 @@ html.menu-open {
 
   #our-solutions {
     width: 100%;
+    gap: 0;
     padding: clamp(64px, 17.06667vw, 9999px) clamp(16px, 4.26667vw, 9999px) clamp(64px, 17.06667vw, 9999px);
     
   }
@@ -2105,7 +2159,7 @@ html.menu-open {
   }
 
   .our-solutions-header h2 {
-    font-size: 50px;
+    font-size: clamp(50px, 13.33333vw, 9999px);
   }
 
   .our-solutions-header h3 {
@@ -2115,6 +2169,7 @@ html.menu-open {
   .our-solutions-header p {
     font-size: clamp(15px, 4vw, 9999px);
     line-height: 1.6;
+    text-align: left;
   }
 
   .our-solution-img-wrap {
