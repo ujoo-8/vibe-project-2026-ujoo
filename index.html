@@ -20,7 +20,7 @@
   </head>
   <body>
     <!-- Top Banner (최상단 띠배너) -->
-    <div class="top-banner" id="top-banner">
+    <div class="top-banner" id="top-banner" style="height: 40px;">
       <div class="top-banner__items"></div>
       <button type="button" class="top-banner__close" id="top-banner-close" aria-label="배너 닫기">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -29,36 +29,44 @@
 
     <!-- Header (Fixed) -->
     <header class="header" id="site-header">
-      <div class="header__logo">
-        <a href="/">
-          <img
-            src="https://static.shoeprize.com/flatten/logo-flatten.svg"
-            alt="FLATTEN"
-          />
+      <div class="shop">
+        <a href="https://www.shoeprize.com/" target="_blank">
+          shoeprize
+          <img class="nav-arrow" src="https://static.shoeprize.com/flatten/icon-arrow-w.png" alt="arrow" width="14" height="14">
         </a>
-        <!-- <span class="header__logo-icon">⁚⁚</span> FLATTEN -->
       </div>
-      <nav class="header__nav" aria-label="메인 네비게이션">
-        <ul class="header__menu-list">
-          <li><a href="#page-2" class="header__menu-link">Why FLATTEN</a></li>
-          <li><a href="#page-3" class="header__menu-link">Our Solutions</a></li>
-          <li><a href="#page-4" class="header__menu-link">All Campaigns</a></li>
-          <li><a href="#page-5" class="header__menu-link">Newsroom</a></li>
-          <li><a href="#" class="header__menu-link">Contact Us</a></li>
-          <li><a href="./notice-board/notice.html" class="header__menu-link">Notice</a></li>
-        </ul>
-        <button
-          class="header__hamburger"
-          aria-label="모바일 메뉴 열기"
-          aria-controls="mobile-menu"
-          aria-expanded="false"
-          id="hamburger-btn"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-      </nav>
+      <div class="header--wrap">
+        <div class="header__logo">
+          <a href="/">
+            <img
+              src="https://static.shoeprize.com/flatten/logo-flatten.svg"
+              alt="FLATTEN"
+            />
+          </a>
+          <!-- <span class="header__logo-icon">⁚⁚</span> FLATTEN -->
+        </div>
+        <nav class="header__nav" aria-label="메인 네비게이션">
+          <ul class="header__menu-list">
+            <li><a href="#page-2" class="header__menu-link">Why FLATTEN</a></li>
+            <li><a href="#page-3" class="header__menu-link">Our Solutions</a></li>
+            <li><a href="#page-4" class="header__menu-link">All Campaigns</a></li>
+            <li><a href="#page-5" class="header__menu-link">Newsroom</a></li>
+            <li><a href="#" class="header__menu-link">Contact Us</a></li>
+            <li><a href="./notice-board/notice.html" class="header__menu-link">Notice</a></li>
+          </ul>
+          <button
+            class="header__hamburger"
+            aria-label="모바일 메뉴 열기"
+            aria-controls="mobile-menu"
+            aria-expanded="false"
+            id="hamburger-btn"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </nav>
+      </div>
     </header>
 
     <!-- Mobile Menu Drawer -->
@@ -798,6 +806,8 @@
         </a>
       </div>
     </footer>
+
+    
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <!-- Notice Data & Banner Script -->

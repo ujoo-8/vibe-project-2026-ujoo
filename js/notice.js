@@ -74,7 +74,7 @@
  */
 
 const NOTICE_CATEGORIES = ['공지사항'];
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 const NEW_BADGE_DAYS = 7;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_EXT = ['jpg', 'jpeg', 'png', 'pdf'];
@@ -520,7 +520,7 @@ const bannerHtml = () => `
 
 const headerHtml = () => `
   <header class="site-header">
-    <a class="site-header__logo" href="index.html" aria-label="FLATTEN 홈">
+    <a class="site-header__logo" href="../index.html" aria-label="FLATTEN 홈">
       <img src="${LOGO}" alt="FLATTEN" />
     </a>
     <nav aria-label="메인 네비게이션">
@@ -534,19 +534,22 @@ const footerHtml = () => `
   <footer class="site-footer">
     <div class="site-footer__left">
       <a href="index.html" aria-label="FLATTEN"><img src="${LOGO}" alt="FLATTEN" /></a>
-      <span class="site-footer__bar"></span>
+      <ul class="site-footer__nav">
+      ${NAV.slice(0, 4).map(([label, href]) => `<li><a href="${href}">${label}</a></li>`).join('')}
+      <li><a href="#" target="_blank" rel="noopener">Careers &#8599;</a></li>
+      <li><a href="#">Contact Us</a></li>
+    </ul>
+    </div>
+    
+
+    <span class="site-footer__bar"></span>
       <div class="site-footer__info">
         <p>FLATTEN Co., Ltd.</p>
         <p>
           CEO: Lee Sang In<span class="sep">|</span>Address: L117, L1 Floor, 15, Nonhyeon-ro 152-gil, Gangnam-gu, Seoul, Republic of Korea<span class="sep">|</span>Business Registration No: 637-87-01821
         </p>
       </div>
-    </div>
-    <ul class="site-footer__nav">
-      ${NAV.slice(0, 4).map(([label, href]) => `<li><a href="${href}">${label}</a></li>`).join('')}
-      <li><a href="#" target="_blank" rel="noopener">Careers &#8599;</a></li>
-      <li><a href="#">Contact Us</a></li>
-    </ul>
+    
   </footer>`;
 
 async function initBanner() {
