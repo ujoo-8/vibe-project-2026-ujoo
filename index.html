@@ -400,7 +400,7 @@
         align-items: flex-start;
       }
       .section--hero .hero-title {
-        height: calc(100vh - var(--header-height));
+        height: calc(92vh - var(--header-height));
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -478,7 +478,7 @@
       .hero-layout--mobile {
         --last-li: 4; /* 마지막 줄 index (5줄) */
       }
-
+      
       /* 텍스트 채움: 투명도 0.3 → (왼쪽에서 오른쪽으로 번지듯) 1 */
       .hero-text-gradient {
         /* 400% 크기의 넓은 그라데이션 → 색이 퍼지는 경계(번짐)가 글자 폭의 약 2배로 넓어져 부드럽게 보임
@@ -572,12 +572,12 @@
         --box-w: 1.55em; /* 최종 너비 (모바일은 아래에서 1.45em으로 덮어씀) */
         height: 0.88em;
         width: var(--box-w);
-        overflow: hidden;
         vertical-align: middle;
         position: relative;
-        flex-shrink: 0;
-        border-radius: 4px;
+        /* flex-shrink: 0; */
+        border-radius: calc(5 / 1920 * 100vw);
         overflow: hidden;
+        box-sizing: border-box;
         /* box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); */
         /* 텍스트가 모두 채워진 뒤 펼침 시작. backwards → 대기 중에는 width 0 유지 */
         animation: heroBoxOpen var(--hero-bounce-dur) ease-in-out
@@ -600,7 +600,7 @@
         height: 100%;
         object-fit: cover;
         display: block;
-        border-radius: 4px;
+        border-radius: calc(5 / 1920 * 100vw);
         overflow: hidden;
       }
 
@@ -806,6 +806,8 @@
         will-change: opacity, translate;
       }
       .section--why.is-revealed .why-reveal-item {
+        border-radius: 4px;
+        overflow: hidden;
         opacity: 1;
         translate: 0 0;
         transition:
@@ -1089,8 +1091,8 @@
         display: flex;
         align-items: center;
         gap: clamp(6px, 0.3125vw, 9999px);
-        margin-top: clamp(12px, 3.2vw, 9999px);
-        margin-bottom: clamp(10px, 2.66667vw, 9999px);
+        margin-top: clamp(12px, .625vw, 9999px);
+        margin-bottom: clamp(16px, .83333vw, 9999px);
       }
 
       .campaign-tag {
@@ -1393,6 +1395,10 @@
         .mobile-menu {
           display: block;
         }
+        /* .section--hero {
+          height: calc(100dvh - 112px);
+          min-height: calc(100dvh - 112px);
+        } */
         .news-page {
           column-gap: 20px;
         }
@@ -1436,7 +1442,7 @@
         /* .inner-box {
         padding: 0 20px;
       } */
-
+        
         /* Section 1 Hero Mobile (5-Line Layout) */
         .hero-layout--desktop {
           display: none;
@@ -1447,22 +1453,34 @@
           flex-direction: column;
           align-items: center;
           width: 100%;
-          font-size: clamp(38px, 11.5vw, 64px);
+          font-size: clamp(52px, 11.5vw, 64px);
         }
 
         .hero-layout--mobile .hero-line {
           --line-gap: 0.12em;
           margin: 0.05em 0;
         }
-
         .hero-layout--mobile .hero-img-box {
-          height: 0.82em;
-          --box-w: 1.45em;
+          /* height: 0.82em; */
+          /* --box-w: 1.45em; */
+          width: calc(84 / 375 * 100vw);
+          /* height: calc(52 / 375 * 100vw); */
+          aspect-ratio: 84 / 52;
         }
-
+        .hero-img-box img,
+        .hero-img-box video {
+          border-radius: calc(4 / 375 * 100vw);
+        }
+        .hero-title {
+          line-height: 1.2;
+          letter-spacing: calc(52 / 375 * 100vw);
+        }
+        .hero-line:first-child .hero-text-gradient {
+          letter-spacing: calc(-3.12 / 375 * 100vw);
+        }
         /* Section 2 Why FLATTEN Mobile */
         .section--why {
-          padding: clamp(80px, 21.33333vw, 9999px)
+          padding: clamp(130px, 21.33333vw, 9999px)
             clamp(16px, 4.26667vw, 9999px) clamp(40px, 10.66667vw, 9999px);
         }
         .img-wrapper {
