@@ -109,6 +109,12 @@ button {
   color: var(--color-text-light-primary);
 }
 
+.header .notice {
+  padding: 8px 40px;
+  width: 100%;
+  min-height: 30px;
+  background-color: #222;
+}
 .header .shop {
   display: flex;
   justify-content: flex-end;
