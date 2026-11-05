@@ -1593,7 +1593,7 @@ clamp(16px, 15.9999px, 9999px)
   }
   .header--wrap {
     height: var(--header-height);
-    padding: 0 16px;
+    padding: 0;
   }
     .header__logo img {
       height: 14px;
