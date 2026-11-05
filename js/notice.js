@@ -506,7 +506,7 @@ function sanitizeHtml(html) {
 const LOGO = 'https://static.shoeprize.com/flatten/logo-flatten.svg';
 const NAV = [
   ['Why FLATTEN', 'index.html#page-2'],
-  ['Our Solutions', 'index.html#page-3'],
+  ['Our Solutions', './page/oursolutions.html'],
   ['All Campaigns', 'index.html#page-4'],
   ['Newsroom', 'index.html#page-5'],
   ['Contact Us', '#'],
