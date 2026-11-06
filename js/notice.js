@@ -325,10 +325,230 @@ const viewGuard = {
 };
 
 /* ======================================================================
- * 3. SERVICE ENTRY POINTS  ★ Firebase 전환 시 아래 두 줄만 교체 ★
+ * 2-B. DATA LAYER — Firebase (Firestore + Storage)
+ *  - 번들러 없이 동작하도록 Firebase 모듈 SDK를 CDN(gstatic)에서 동적 import 한다.
+ *  - 컬렉션: notices / 게시글 번호 카운터: meta/noticeCounter
+ *  - createdAt/updatedAt은 기존 모델과 동일하게 ISO 문자열로 저장 (UI 변경 없음)
  * ====================================================================== */
-const noticeService = noticeMockService;       // → noticeFirebaseService
-const fileStorageService = fileStorageMock;    // → fileStorageFirebase
+const FIREBASE_VERSION = '10.14.1';
+const FIREBASE_CDN = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}`;
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyCsS5dW0CrHb5yHPZ9v9lk-xuZSE1RYhF8',
+  authDomain: 'vibe-project-ujoo.firebaseapp.com',
+  projectId: 'vibe-project-ujoo',
+  storageBucket: 'vibe-project-ujoo.firebasestorage.app',
+  messagingSenderId: '626569777591',
+  appId: '1:626569777591:web:0a36dd2d2aa911c99f9832',
+};
+
+const NOTICES_COL = 'notices';
+const COUNTER_PATH = ['meta', 'noticeCounter'];
+
+let firebasePromise = null;
+/** Firebase SDK를 최초 1회만 로드/초기화 (실패 시 다음 호출에서 재시도) */
+const getFirebase = () => {
+  if (!firebasePromise) {
+    firebasePromise = (async () => {
+      const [appMod, fs, st] = await Promise.all([
+        import(`${FIREBASE_CDN}/firebase-app.js`),
+        import(`${FIREBASE_CDN}/firebase-firestore.js`),
+        import(`${FIREBASE_CDN}/firebase-storage.js`),
+      ]);
+      const app = appMod.initializeApp(firebaseConfig);
+      return { fs, st, db: fs.getFirestore(app), storage: st.getStorage(app) };
+    })();
+    firebasePromise.catch(() => {
+      firebasePromise = null;
+    });
+  }
+  return firebasePromise;
+};
+
+const fromSnap = (snap) => ({ ...snap.data(), id: snap.id });
+
+/** Firestore는 undefined 값을 허용하지 않으므로 제거 */
+const stripUndefined = (obj) =>
+  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+
+const noticeFirebaseService = {
+  getAll: async () => {
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDocs(fs.query(fs.collection(db, NOTICES_COL), fs.orderBy('createdAt', 'desc')));
+    return sortDesc(snap.docs.map(fromSnap));
+  },
+
+  getById: async (id) => {
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDoc(fs.doc(db, NOTICES_COL, id));
+    return snap.exists() ? fromSnap(snap) : null;
+  },
+
+  /**
+   * 분류 필터 + 제목 검색 + 최신순 + 페이지네이션
+   * Firestore는 부분 문자열 검색을 지원하지 않으므로 전체를 가져와 클라이언트에서 필터링한다.
+   * (공지 게시판 규모 기준. 수천 건 이상이 되면 검색 서비스/서버 페이지네이션 도입 필요)
+   */
+  list: async ({ page = 1, pageSize = 5, category = '', keyword = '' } = {}) => {
+    let list = await noticeFirebaseService.getAll();
+    if (category) list = list.filter((n) => n.category === category);
+    const kw = keyword.trim().toLowerCase();
+    if (kw) list = list.filter((n) => n.title.toLowerCase().includes(kw));
+    const total = list.length;
+    const start = (page - 1) * pageSize;
+    return { items: list.slice(start, start + pageSize), total, page, pageSize };
+  },
+
+  getLatest: async (n = 3) => {
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDocs(
+      fs.query(fs.collection(db, NOTICES_COL), fs.orderBy('createdAt', 'desc'), fs.limit(n)),
+    );
+    return sortDesc(snap.docs.map(fromSnap)).slice(0, n);
+  },
+
+  /** prev = 한 칸 더 오래된 글, next = 한 칸 더 최신 글 */
+  getAdjacent: async (id) => {
+    const list = await noticeFirebaseService.getAll();
+    const idx = list.findIndex((n) => n.id === id);
+    if (idx === -1) return { prev: null, next: null };
+    const pick = (n) => (n ? { id: n.id, title: n.title } : null);
+    return { prev: pick(list[idx + 1]), next: pick(list[idx - 1]) };
+  },
+
+  /** 게시글 번호(no)는 meta/noticeCounter를 트랜잭션으로 증가시켜 중복 없이 부여 */
+  create: async (dto) => {
+    const { fs, db } = await getFirebase();
+    const col = fs.collection(db, NOTICES_COL);
+    const counterRef = fs.doc(db, ...COUNTER_PATH);
+    const newRef = fs.doc(col);
+
+    // 카운터 문서가 아직 없으면 기존 최대 번호에서 이어서 시작
+    let base = 0;
+    const counterSnap = await fs.getDoc(counterRef);
+    if (!counterSnap.exists()) {
+      const top = await fs.getDocs(fs.query(col, fs.orderBy('no', 'desc'), fs.limit(1)));
+      base = top.empty ? 0 : top.docs[0].data().no || 0;
+    }
+
+    const now = new Date().toISOString();
+    const { id: _ignore, ...rest } = dto;
+    const data = stripUndefined({ ...rest, views: 0, createdAt: now, updatedAt: now });
+
+    const no = await fs.runTransaction(db, async (tx) => {
+      const c = await tx.get(counterRef);
+      const next = (c.exists() ? c.data().last : base) + 1;
+      tx.set(counterRef, { last: next });
+      tx.set(newRef, { ...data, no: next });
+      return next;
+    });
+    return { ...data, no, id: newRef.id };
+  },
+
+  update: async (id, dto) => {
+    const { fs, db } = await getFirebase();
+    const ref = fs.doc(db, NOTICES_COL, id);
+    const snap = await fs.getDoc(ref);
+    if (!snap.exists()) throw new Error(`Notice ${id} not found`);
+    const { id: _ignore, no: _no, views: _views, createdAt: _created, ...rest } = dto;
+    await fs.updateDoc(ref, stripUndefined({ ...rest, updatedAt: new Date().toISOString() }));
+    return fromSnap(await fs.getDoc(ref));
+  },
+
+  increaseViews: async (id) => {
+    const { fs, db } = await getFirebase();
+    const ref = fs.doc(db, NOTICES_COL, id);
+    await fs.updateDoc(ref, { views: fs.increment(1) });
+    const snap = await fs.getDoc(ref);
+    if (!snap.exists()) throw new Error(`Notice ${id} not found`);
+    return fromSnap(snap);
+  },
+
+  delete: async (id) => {
+    const { fs, db } = await getFirebase();
+    await fs.deleteDoc(fs.doc(db, NOTICES_COL, id));
+  },
+
+  /**
+   * 초기 시드 7건을 Firestore에 1회 주입 (브라우저 콘솔에서 __seedNotices() 실행)
+   * 컬렉션에 문서가 이미 있으면 중단 (force=true 로 강제 가능)
+   */
+  seed: async (force = false) => {
+    const { fs, db } = await getFirebase();
+    const col = fs.collection(db, NOTICES_COL);
+    const existing = await fs.getDocs(fs.query(col, fs.limit(1)));
+    if (!existing.empty && !force) {
+      console.warn('[seed] notices 컬렉션에 이미 데이터가 있어 중단했습니다. __seedNotices(true)로 강제 실행할 수 있습니다.');
+      return 0;
+    }
+    const items = buildSeed();
+    const batch = fs.writeBatch(db);
+    items.forEach(({ id: _ignore, ...data }) => batch.set(fs.doc(col), data));
+    batch.set(fs.doc(db, ...COUNTER_PATH), { last: Math.max(...items.map((n) => n.no)) });
+    await batch.commit();
+    console.info(`[seed] ${items.length}건 등록 완료`);
+    return items.length;
+  },
+};
+
+/** 업로드 전 이미지를 최대 폭으로 리사이즈 → JPEG Blob */
+const imageToJpegBlob = async (file) => {
+  const img = await loadImage(await readAsDataUrl(file));
+  const scale = Math.min(1, MAX_IMAGE_WIDTH / img.width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('이미지를 변환할 수 없습니다.'))), 'image/jpeg', 0.85),
+  );
+};
+
+const fileStorageFirebase = {
+  /** 첨부파일 → Storage 업로드 후 메타데이터(url/path 포함) 반환 */
+  uploadFile: async (file) => {
+    const { st, storage } = await getFirebase();
+    const safeName = file.name.replace(/[\\/]/g, '_');
+    const path = `notices/attachments/${newId()}-${safeName}`;
+    const ref = st.ref(storage, path);
+    await st.uploadBytes(ref, file, { contentType: file.type || undefined });
+    const url = await st.getDownloadURL(ref);
+    return { name: file.name, size: file.size, type: file.type || '', url, path };
+  },
+
+  /** 에디터 이미지 → 리사이즈 후 Storage 업로드, downloadURL 반환 */
+  uploadImage: async (file) => {
+    const { st, storage } = await getFirebase();
+    const blob = await imageToJpegBlob(file);
+    const ref = st.ref(storage, `notices/images/${newId()}.jpg`);
+    await st.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
+    return st.getDownloadURL(ref);
+  },
+
+  /** 첨부파일 삭제 (path가 없는 레거시 항목은 무시) */
+  remove: async (attachment) => {
+    if (!attachment || !attachment.path) return;
+    const { st, storage } = await getFirebase();
+    try {
+      await st.deleteObject(st.ref(storage, attachment.path));
+    } catch (err) {
+      if (err && err.code === 'storage/object-not-found') return;
+      throw err;
+    }
+  },
+};
+
+// 콘솔에서 1회 실행해 시드 데이터를 넣을 수 있도록 노출 (필요 없으면 이 줄 삭제)
+window.__seedNotices = (force) => noticeFirebaseService.seed(force);
+
+/* ======================================================================
+ * 3. SERVICE ENTRY POINTS  (Mock으로 되돌리려면 아래 두 줄의 주석을 교체)
+ * ====================================================================== */
+const noticeService = noticeFirebaseService;    // ← noticeMockService
+const fileStorageService = fileStorageFirebase; // ← fileStorageMock
 
 /* ======================================================================
  * 4. COMMON UTILS / LAYOUT (banner, header, footer)
