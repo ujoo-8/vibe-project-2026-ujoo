@@ -1896,7 +1896,8 @@ html.menu-open {
 
   /* Section 3 Solutions Mobile */
   .section--solutions {
-    padding: clamp(80px, 21.33333vw, 9999px) clamp(16px, 4.26667vw, 9999px) clamp(40px, 10.66667vw, 9999px);
+    min-height: auto;
+    padding: clamp(80px, 21.33333vw, 9999px) clamp(16px, 4.26667vw, 9999px) clamp(80px, 21.33333vw, 9999px);
     gap: clamp(20px, 5.33333vw, 9999px);
   }
 
@@ -1957,7 +1958,7 @@ html.menu-open {
 
   /* Section 4 Campaigns Mobile */
   .section--campaigns {
-    padding: clamp(80px, 21.33333vw, 9999px) clamp(16px, 4.26667vw, 9999px) clamp(40px, 10.66667vw, 9999px);
+    padding: clamp(80px, 21.33333vw, 9999px) clamp(16px, 4.26667vw, 9999px) clamp(80px, 21.33333vw, 9999px);
   }
 
   .campaigns-header {
