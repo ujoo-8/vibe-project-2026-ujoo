@@ -503,10 +503,10 @@ function sanitizeHtml(html) {
   return doc.body.innerHTML;
 }
 
-const LOGO = 'https://static.shoeprize.com/flatten/logo-flatten.svg';
+const LOGO = 'https://static.shoeprize.com/flatten/logo-flatten-g.svg';
 const NAV = [
   ['Why FLATTEN', 'index.html#page-2'],
-  ['Our Solutions', '../page/oursolutions.html'],
+  ['Our Solutions', '../pages/oursolutions.html'],
   ['All Campaigns', 'index.html#page-4'],
   ['Newsroom', 'index.html#page-5'],
   ['Contact Us', '#'],
@@ -539,6 +539,7 @@ const footerHtml = () => `
       ${NAV.slice(0, 4).map(([label, href]) => `<li><a href="${href}">${label}</a></li>`).join('')}
       <li><a href="#" target="_blank" rel="noopener">Careers &#8599;</a></li>
       <li><a href="#">Contact Us</a></li>
+      <li><a href="../notice-board/notice.html">Notice</a></li>
     </ul>
     </div>
     
