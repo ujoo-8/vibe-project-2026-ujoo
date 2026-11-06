@@ -18,6 +18,8 @@
   };
   const formatContent = (value) => escapeHtml(value).replace(/\n/g, '<br>');
   const getId = () => new URLSearchParams(location.search).get('id');
+  const loginPage = '../notice-board/login.html';
+  const currentPageRef = () => `${location.pathname}${location.search}`;
   const showMessage = (message) => {
     app.innerHTML = `<p class="notice-empty">${escapeHtml(message)}</p><div class="detail-actions"><a class="btn-outline" href="qna.html">목록으로</a></div>`;
   };
@@ -136,7 +138,7 @@
     const id = getId();
     const user = await auth.ready();
     if (!user) {
-      location.href = `login.html?redirect=${encodeURIComponent(id ? `qna-edit.html?id=${id}` : 'qna-write.html')}`;
+      location.href = `${loginPage}?redirect=${encodeURIComponent(currentPageRef())}`;
       return;
     }
     let question = null;
@@ -172,7 +174,7 @@
           alert('질문을 저장할 권한이 없습니다. 로그인 상태와 Firebase Firestore Rules 배포 여부를 확인해주세요.');
         } else if (error.code === 'unauthenticated') {
           alert('로그인 후 질문을 등록할 수 있습니다.');
-          location.href = `login.html?redirect=${encodeURIComponent(id ? `qna-edit.html?id=${id}` : 'qna-write.html')}`;
+          location.href = `${loginPage}?redirect=${encodeURIComponent(currentPageRef())}`;
         } else {
           alert('질문 저장 중 오류가 발생했습니다.');
         }

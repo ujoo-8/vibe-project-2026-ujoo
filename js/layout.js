@@ -151,7 +151,7 @@
       if (user) {
         authNav.innerHTML = `<span class="nav-auth__welcome"><span class="username">${escapeText(user.name)}님</span> 환영합니다</span><button type="button" class="nav-auth__btn" id="logout-btn">Logout</button>`;
       } else {
-        const current = `${location.pathname.split('/').pop() || 'index.html'}${location.search}`;
+        const current = `${location.pathname}${location.search}`;
         const loginHref = `${root}notice-board/login.html?redirect=${encodeURIComponent(current)}`;
         authNav.innerHTML = `<a href="${loginHref}" class="header__menu-link">Login</a>`;
       }
@@ -169,7 +169,7 @@
         } catch (error) {
           console.error('Logout failed', error);
         }
-        location.reload();
+        location.href = home;
       });
     };
     window.addEventListener('auth-service-ready', bindAuth, { once: true });

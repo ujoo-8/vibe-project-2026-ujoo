@@ -1058,9 +1058,9 @@ function sanitizeHtml(html) {
 
 /** 로그인 후 돌아갈 주소: 같은 폴더의 *.html(?쿼리)만 허용 */
 const safeRedirect = (value) =>
-  value && /^[A-Za-z0-9_-]+\.html(\?[A-Za-z0-9_\-=&%.]*)?$/.test(value) ? value : 'notice.html';
+  value && /^(?:\/|\.\.\/|\.\/)?[A-Za-z0-9_./-]+\.html(\?[A-Za-z0-9_\-=&%.]*)?$/.test(value) ? value : 'notice.html';
 
-const currentPageRef = () => `${location.pathname.split('/').pop() || 'notice.html'}${location.search}`;
+const currentPageRef = () => `${location.pathname}${location.search}`;
 
 function renderAccessDenied(app, user) {
   const loginHref = `login.html?redirect=${encodeURIComponent(currentPageRef())}`;
