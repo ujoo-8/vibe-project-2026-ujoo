@@ -1,9 +1,12 @@
 /**
- * FLATTEN 공지사항 게시판 (Firebase 연동 버전)
+ * FLATTEN 공지사항 게시판 (단일 파일 번들)
  *
  * 구성 (위에서 아래 순서)
- *   1. 모델/상수            2. [DATA] Firebase Firestore 서비스   3. 서비스 진입점
- *   4. 공통 유틸/레이아웃   5. 리치 에디터                         6. 페이지 로직 (목록/상세/글쓰기·수정)
+ *   1. 모델/상수            2. [DATA] Mock 서비스 (localStorage)   3. 서비스 진입점 ← Firebase 전환 시 교체
+ *   4. 공통 유틸/레이아웃   5. 리치 에디터                          6. 페이지 로직 (목록/상세/글쓰기·수정)
+ *
+ * UI(4~6)는 noticeService / fileStorageService 인터페이스만 사용하며 localStorage를 직접 호출하지 않는다.
+ * (sessionStorage는 조회수 중복 방지용 viewGuard에서만 사용)
  */
 (function () {
   'use strict';
@@ -11,6 +14,65 @@
 /* ======================================================================
  * 1. MODEL / CONSTANTS
  * ====================================================================== */
+/**
+ * 데이터 모델 및 공통 상수 (Firestore 친화적 단일 문서 구조)
+ *
+ * @typedef {Object} Attachment            첨부파일 메타데이터 (파일 본문은 저장하지 않음)
+ * @property {string} name
+ * @property {number} size                 bytes
+ * @property {string} type                 MIME type
+ * @property {string} [url]                Firebase Storage 전환 시 downloadURL 저장
+ * @property {string} [path]               Firebase Storage 전환 시 storage 경로(삭제용)
+ *
+ * @typedef {Object} Notice
+ * @property {string} id                   crypto.randomUUID() / Firestore doc.id
+ * @property {number} no                   화면 표시용 게시글 번호
+ * @property {string} title
+ * @property {string} category
+ * @property {string} content              HTML (sanitize 완료본)
+ * @property {Attachment[]} attachments
+ * @property {number} views
+ * @property {string} createdAt            ISO 8601
+ * @property {string} updatedAt            ISO 8601
+ *
+ * @typedef {Object} CreateNoticeDto
+ * @property {string} title
+ * @property {string} category
+ * @property {string} content
+ * @property {Attachment[]} attachments
+ *
+ * @typedef {Partial<CreateNoticeDto>} UpdateNoticeDto
+ *
+ * @typedef {Object} ListQuery
+ * @property {number} [page]
+ * @property {number} [pageSize]
+ * @property {string} [category]           빈 문자열 = 전체
+ * @property {string} [keyword]            제목 검색어
+ *
+ * @typedef {Object} ListResult
+ * @property {Notice[]} items
+ * @property {number} total
+ * @property {number} page
+ * @property {number} pageSize
+ *
+ * ─────────────────────────────────────────────
+ * NoticeService 인터페이스 (Mock / Firebase 구현체가 동일하게 따른다)
+ *   getAll(): Promise<Notice[]>
+ *   getById(id): Promise<Notice | null>
+ *   list(query): Promise<ListResult>
+ *   getLatest(n): Promise<Notice[]>
+ *   getAdjacent(id): Promise<{ prev: {id,title}|null, next: {id,title}|null }>   // prev=더 오래된 글, next=더 최신 글
+ *   create(dto): Promise<Notice>
+ *   update(id, dto): Promise<Notice>
+ *   increaseViews(id): Promise<Notice>
+ *   delete(id): Promise<void>
+ *
+ * FileStorageService 인터페이스
+ *   uploadFile(file): Promise<Attachment>       // 첨부파일 → 메타데이터 반환
+ *   uploadImage(file): Promise<string>          // 에디터 이미지 → URL 반환
+ *   remove(attachment): Promise<void>
+ */
+
 const NOTICE_CATEGORIES = ['공지사항'];
 const PAGE_SIZE = 10;
 const NEW_BADGE_DAYS = 7;
@@ -18,72 +80,132 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_EXT = ['jpg', 'jpeg', 'png', 'pdf'];
 
 /* ======================================================================
- * 2. DATA LAYER — Firebase Firestore & Storage Service
+ * 2. DATA LAYER — LocalStorage Mock (Firebase 전환 시 이 구간을 Firebase 구현체로 대체)
  * ====================================================================== */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { 
-  getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, 
-  query, orderBy, limit, startAfter, where, increment 
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { 
-  getStorage, ref, uploadBytes, getDownloadURL, deleteObject 
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+const LATENCY = 150; // 네트워크 레이턴시 시뮬레이션 (ms)
 
-// 사용자가 제공해주신 Firebase SDK 설정
-const firebaseConfig = {
-  apiKey: "AIzaSyCsS5dW0CrHb5yHPZ9v9lk-xuZSE1RYhF8",
-  authDomain: "vibe-project-ujoo.firebaseapp.com",
-  projectId: "vibe-project-ujoo",
-  storageBucket: "vibe-project-ujoo.firebasestorage.app",
-  messagingSenderId: "626569777591",
-  appId: "1:626569777591:web:0a36dd2d2aa911c99f9832"
+const delay = (ms = LATENCY) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** crypto.randomUUID() 우선 사용 (file:// 등 비보안 컨텍스트 대비 폴백 포함) */
+const newId = () => {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  const b = globalThis.crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0'));
+  return `${h.slice(0, 4).join('')}-${h.slice(4, 6).join('')}-${h.slice(6, 8).join('')}-${h.slice(8, 10).join('')}-${h.slice(10).join('')}`;
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-const COLLECTION_NAME = "notices";
-
-const noticeFirebaseService = {
-  getAll: async () => {
-    const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+const storageHelper = {
+  async get(key, defaultValue) {
+    await delay();
+    const item = localStorage.getItem(key);
+    if (item === null) return defaultValue;
+    try {
+      return JSON.parse(item);
+    } catch {
+      return defaultValue;
+    }
   },
+
+  async set(key, value) {
+    await delay();
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      throw new Error('저장 공간이 부족합니다. 이미지 용량을 줄여 다시 시도해주세요.');
+    }
+  },
+};
+
+const p = (...lines) => `<p>${lines.join('<br>')}</p>`;
+const kst = (ymd) => new Date(`${ymd.replace(/\./g, '-')}T10:00:00+09:00`).toISOString();
+
+const SEED = [
+  [1, '개인정보처리방침 개정 안내', '2026.10.14', 472,
+    p('안녕하세요, FLATTEN입니다.', '개인정보처리방침이 일부 개정되어 안내드립니다.') +
+      p('자세한 변경 사항은 개정된 방침을 통해 확인하실 수 있습니다.', '감사합니다.')],
+  [2, '고객센터 운영시간 변경 안내', '2026.10.17', 521,
+    p('안녕하세요, FLATTEN입니다.', '고객센터 운영시간이 아래와 같이 변경됩니다.') +
+      p('평일 10:00 ~ 18:00 (점심시간 12:30 ~ 13:30)', '주말 및 공휴일은 휴무입니다.')],
+  [3, 'FLATTEN 뉴스룸이 새롭게 개편되었습니다.', '2026.10.20', 789,
+    p('안녕하세요, FLATTEN입니다.', 'FLATTEN 뉴스룸이 새로운 모습으로 개편되었습니다.') +
+      p('브랜드 소식과 캠페인 성공 사례를 더욱 편리하게 만나보세요.')],
+  [4, '서비스 점검 안내 (10/25)', '2026.10.24', 613,
+    p('안녕하세요, FLATTEN입니다.', '안정적인 서비스 제공을 위해 아래 일정으로 시스템 점검을 진행합니다.') +
+      p('점검 일시: 2026.10.25(토) 02:00 ~ 05:00', '점검 시간 동안에는 일부 서비스 이용이 제한될 수 있습니다.')],
+  [5, '가을 시즌 특별 프로모션을 만나보세요.', '2026.10.28', 724,
+    p('안녕하세요, FLATTEN입니다.', '가을 시즌을 맞아 다양한 혜택이 준비된 특별 프로모션을 진행합니다.') +
+      p('많은 관심과 참여 부탁드립니다.')],
+  [6, '신규 브랜드 스토어가 오픈했습니다.', '2026.10.30', 892,
+    p('안녕하세요, FLATTEN입니다.', '신규 브랜드 스토어가 오픈했습니다.') +
+      p('오픈 기념 이벤트도 함께 진행되오니 많은 방문 부탁드립니다.')],
+  [7, 'FLATTEN 2026 F/W Campaign이 시작되었습니다.', '2026.11.03', 1245,
+    '<p><img src="images/flatten-7.webp" alt="FLATTEN"></p>' +
+      p('안녕하세요, <b>FLATTEN</b>입니다.', '2026 F/W 시즌을 맞아, 새로운 캠페인이 시작되었습니다.') +
+      p('이번 캠페인은 일상 속에서 더욱 가까워진 <b>FLATTEN</b>의 무드를 담아,', '지금 이 순간을 특별하게 만드는 다양한 콘텐츠를 선보입니다.') +
+      p('앞으로도 FLATTEN은 더 나은 경험과 가치를 전달하기 위해 노력하겠습니다.', '많은 관심과 참여 부탁드립니다.')],
+];
+
+/** 최초 접속 시 localStorage에 주입되는 시드 데이터 7건 */
+function buildSeed() {
+  return SEED.map(([no, title, date, views, content]) => {
+    const iso = kst(date);
+    return {
+      id: newId(),
+      no,
+      title,
+      category: '공지사항',
+      content,
+      attachments: [],
+      views,
+      createdAt: iso,
+      updatedAt: iso,
+    };
+  });
+}
+
+const STORAGE_KEY = 'mock_notices';
+
+const sortDesc = (list) =>
+  [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.no - a.no);
+
+/** 저장소가 비어 있으면(최초 접속) 시드 주입 */
+async function load() {
+  let list = await storageHelper.get(STORAGE_KEY, null);
+  if (!list) {
+    list = buildSeed();
+    await storageHelper.set(STORAGE_KEY, list);
+  }
+  return list;
+}
+
+const noticeMockService = {
+  getAll: async () => sortDesc(await load()),
 
   getById: async (id) => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return null;
-    return { id: docSnap.id, ...docSnap.data() };
+    const list = await load();
+    return list.find((item) => item.id === id) || null;
   },
 
+  /** 분류 필터 + 제목 검색 + 최신순 + 페이지네이션 */
   list: async ({ page = 1, pageSize = 5, category = '', keyword = '' } = {}) => {
-    // Firestore는 복잡한 full-text search나 다중 필터링 시 인덱스가 필요하므로 테스트용으로 전체를 가져와서 정렬/필터링 처리
-    const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(q);
-    let list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+    let list = sortDesc(await load());
     if (category) list = list.filter((n) => n.category === category);
     const kw = keyword.trim().toLowerCase();
     if (kw) list = list.filter((n) => n.title.toLowerCase().includes(kw));
-
     const total = list.length;
     const start = (page - 1) * pageSize;
     return { items: list.slice(start, start + pageSize), total, page, pageSize };
   },
 
-  getLatest: async (n = 3) => {
-    const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"), limit(n));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  },
+  getLatest: async (n = 3) => sortDesc(await load()).slice(0, n),
 
+  /** prev = 한 칸 더 오래된 글, next = 한 칸 더 최신 글 */
   getAdjacent: async (id) => {
-    const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(q);
-    const list = snapshot.docs.map(doc => ({ id: doc.id, title: doc.data().title }));
+    const list = sortDesc(await load());
     const idx = list.findIndex((n) => n.id === id);
     if (idx === -1) return { prev: null, next: null };
     const pick = (n) => (n ? { id: n.id, title: n.title } : null);
@@ -91,83 +213,104 @@ const noticeFirebaseService = {
   },
 
   create: async (dto) => {
+    const list = await load();
     const now = new Date().toISOString();
-    // 번호(no) 자동 계산을 위해 전체 문서 수 조회
-    const snapshot = await getDocs(collection(db, COLLECTION_NAME));
-    const newNo = snapshot.size + 1;
-
-    const noticeData = {
+    const notice = {
       ...dto,
-      no: newNo,
+      id: newId(),
+      no: list.reduce((max, n) => Math.max(max, n.no), 0) + 1,
       views: 0,
       createdAt: now,
       updatedAt: now,
     };
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), noticeData);
-    return { id: docRef.id, ...noticeData };
+    list.unshift(notice);
+    await storageHelper.set(STORAGE_KEY, list);
+    return notice;
   },
 
   update: async (id, dto) => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    const updatedAt = new Date().toISOString();
-    const updateData = { ...dto, updatedAt };
-    await updateDoc(docRef, updateData);
-    const updatedSnap = await getDoc(docRef);
-    return { id: updatedSnap.id, ...updatedSnap.data() };
+    const list = await load();
+    const index = list.findIndex((n) => n.id === id);
+    if (index === -1) throw new Error(`Notice ${id} not found`);
+    const updated = { ...list[index], ...dto, updatedAt: new Date().toISOString() };
+    list[index] = updated;
+    await storageHelper.set(STORAGE_KEY, list);
+    return updated;
   },
 
   increaseViews: async (id) => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    await updateDoc(docRef, { views: increment(1) });
-    const updatedSnap = await getDoc(docRef);
-    return { id: updatedSnap.id, ...updatedSnap.data() };
+    const list = await load();
+    const index = list.findIndex((n) => n.id === id);
+    if (index === -1) throw new Error(`Notice ${id} not found`);
+    list[index] = { ...list[index], views: list[index].views + 1 };
+    await storageHelper.set(STORAGE_KEY, list);
+    return list[index];
   },
 
   delete: async (id) => {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    await deleteDoc(docRef);
+    const list = await load();
+    await storageHelper.set(
+      STORAGE_KEY,
+      list.filter((n) => n.id !== id),
+    );
   },
 };
 
+const readAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+    reader.readAsDataURL(file);
+  });
+
+const loadImage = (src) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('이미지를 불러올 수 없습니다.'));
+    img.src = src;
+  });
+
+const MAX_IMAGE_WIDTH = 1200;
+
 /**
- * 파일 스토리지 서비스 (Firebase Storage 연동)
+ * Mock 파일 저장소
+ *  - 첨부파일: 메타데이터(name/size/type)만 반환 (실제 파일은 저장하지 않음)
+ *  - 에디터 이미지: localStorage 용량 한계를 고려해 리사이즈/압축한 data URL 반환
+ *    → Firebase 전환 시 Storage 업로드 후 downloadURL을 반환하도록 교체
  */
-const fileStorageFirebase = {
+const fileStorageMock = {
   uploadFile: async (file) => {
-    const filePath = `attachments/${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, filePath);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-    return { 
-      name: file.name, 
-      size: file.size, 
-      type: file.type, 
-      url: downloadURL, 
-      path: filePath 
-    };
+    await delay();
+    return { name: file.name, size: file.size, type: file.type };
   },
 
   uploadImage: async (file) => {
-    const filePath = `editor_images/${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, filePath);
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
+    await delay();
+    const img = await loadImage(await readAsDataUrl(file));
+    const scale = Math.min(1, MAX_IMAGE_WIDTH / img.width);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.8);
   },
 
-  remove: async (attachment) => {
-    if (!attachment || !attachment.path) return;
-    try {
-      const storageRef = ref(storage, attachment.path);
-      await deleteObject(storageRef);
-    } catch (err) {
-      console.warn("파일 삭제 실패 또는 파일이 존재하지 않습니다:", err);
-    }
+  remove: async () => {
+    await delay();
   },
 };
 
-// 조회수 중복 증가 방지 (세션 스토리지 사용)
+// 조회수 중복 증가 방지 (새로고침/재진입 시 같은 세션에서 1회만 카운트)
+// DB가 아닌 "브라우저 세션 상태"이므로 Firebase 전환 후에도 그대로 사용한다.
 const KEY = 'notice_viewed_ids';
+
 const viewGuard = {
+  /** 이 세션에서 처음 보는 글이면 true (그리고 기록) */
   markIfFirst(id) {
     try {
       const ids = JSON.parse(sessionStorage.getItem(KEY) || '[]');
@@ -182,10 +325,230 @@ const viewGuard = {
 };
 
 /* ======================================================================
- * 3. SERVICE ENTRY POINTS — Firebase 서비스로 연결
+ * 2-B. DATA LAYER — Firebase (Firestore + Storage)
+ *  - 번들러 없이 동작하도록 Firebase 모듈 SDK를 CDN(gstatic)에서 동적 import 한다.
+ *  - 컬렉션: notices / 게시글 번호 카운터: meta/noticeCounter
+ *  - createdAt/updatedAt은 기존 모델과 동일하게 ISO 문자열로 저장 (UI 변경 없음)
  * ====================================================================== */
-const noticeService = noticeFirebaseService;
-const fileStorageService = fileStorageFirebase;
+const FIREBASE_VERSION = '10.14.1';
+const FIREBASE_CDN = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}`;
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyCsS5dW0CrHb5yHPZ9v9lk-xuZSE1RYhF8',
+  authDomain: 'vibe-project-ujoo.firebaseapp.com',
+  projectId: 'vibe-project-ujoo',
+  storageBucket: 'vibe-project-ujoo.firebasestorage.app',
+  messagingSenderId: '626569777591',
+  appId: '1:626569777591:web:0a36dd2d2aa911c99f9832',
+};
+
+const NOTICES_COL = 'notices';
+const COUNTER_PATH = ['meta', 'noticeCounter'];
+
+let firebasePromise = null;
+/** Firebase SDK를 최초 1회만 로드/초기화 (실패 시 다음 호출에서 재시도) */
+const getFirebase = () => {
+  if (!firebasePromise) {
+    firebasePromise = (async () => {
+      const [appMod, fs, st] = await Promise.all([
+        import(`${FIREBASE_CDN}/firebase-app.js`),
+        import(`${FIREBASE_CDN}/firebase-firestore.js`),
+        import(`${FIREBASE_CDN}/firebase-storage.js`),
+      ]);
+      const app = appMod.initializeApp(firebaseConfig);
+      return { fs, st, db: fs.getFirestore(app), storage: st.getStorage(app) };
+    })();
+    firebasePromise.catch(() => {
+      firebasePromise = null;
+    });
+  }
+  return firebasePromise;
+};
+
+const fromSnap = (snap) => ({ ...snap.data(), id: snap.id });
+
+/** Firestore는 undefined 값을 허용하지 않으므로 제거 */
+const stripUndefined = (obj) =>
+  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+
+const noticeFirebaseService = {
+  getAll: async () => {
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDocs(fs.query(fs.collection(db, NOTICES_COL), fs.orderBy('createdAt', 'desc')));
+    return sortDesc(snap.docs.map(fromSnap));
+  },
+
+  getById: async (id) => {
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDoc(fs.doc(db, NOTICES_COL, id));
+    return snap.exists() ? fromSnap(snap) : null;
+  },
+
+  /**
+   * 분류 필터 + 제목 검색 + 최신순 + 페이지네이션
+   * Firestore는 부분 문자열 검색을 지원하지 않으므로 전체를 가져와 클라이언트에서 필터링한다.
+   * (공지 게시판 규모 기준. 수천 건 이상이 되면 검색 서비스/서버 페이지네이션 도입 필요)
+   */
+  list: async ({ page = 1, pageSize = 5, category = '', keyword = '' } = {}) => {
+    let list = await noticeFirebaseService.getAll();
+    if (category) list = list.filter((n) => n.category === category);
+    const kw = keyword.trim().toLowerCase();
+    if (kw) list = list.filter((n) => n.title.toLowerCase().includes(kw));
+    const total = list.length;
+    const start = (page - 1) * pageSize;
+    return { items: list.slice(start, start + pageSize), total, page, pageSize };
+  },
+
+  getLatest: async (n = 3) => {
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDocs(
+      fs.query(fs.collection(db, NOTICES_COL), fs.orderBy('createdAt', 'desc'), fs.limit(n)),
+    );
+    return sortDesc(snap.docs.map(fromSnap)).slice(0, n);
+  },
+
+  /** prev = 한 칸 더 오래된 글, next = 한 칸 더 최신 글 */
+  getAdjacent: async (id) => {
+    const list = await noticeFirebaseService.getAll();
+    const idx = list.findIndex((n) => n.id === id);
+    if (idx === -1) return { prev: null, next: null };
+    const pick = (n) => (n ? { id: n.id, title: n.title } : null);
+    return { prev: pick(list[idx + 1]), next: pick(list[idx - 1]) };
+  },
+
+  /** 게시글 번호(no)는 meta/noticeCounter를 트랜잭션으로 증가시켜 중복 없이 부여 */
+  create: async (dto) => {
+    const { fs, db } = await getFirebase();
+    const col = fs.collection(db, NOTICES_COL);
+    const counterRef = fs.doc(db, ...COUNTER_PATH);
+    const newRef = fs.doc(col);
+
+    // 카운터 문서가 아직 없으면 기존 최대 번호에서 이어서 시작
+    let base = 0;
+    const counterSnap = await fs.getDoc(counterRef);
+    if (!counterSnap.exists()) {
+      const top = await fs.getDocs(fs.query(col, fs.orderBy('no', 'desc'), fs.limit(1)));
+      base = top.empty ? 0 : top.docs[0].data().no || 0;
+    }
+
+    const now = new Date().toISOString();
+    const { id: _ignore, ...rest } = dto;
+    const data = stripUndefined({ ...rest, views: 0, createdAt: now, updatedAt: now });
+
+    const no = await fs.runTransaction(db, async (tx) => {
+      const c = await tx.get(counterRef);
+      const next = (c.exists() ? c.data().last : base) + 1;
+      tx.set(counterRef, { last: next });
+      tx.set(newRef, { ...data, no: next });
+      return next;
+    });
+    return { ...data, no, id: newRef.id };
+  },
+
+  update: async (id, dto) => {
+    const { fs, db } = await getFirebase();
+    const ref = fs.doc(db, NOTICES_COL, id);
+    const snap = await fs.getDoc(ref);
+    if (!snap.exists()) throw new Error(`Notice ${id} not found`);
+    const { id: _ignore, no: _no, views: _views, createdAt: _created, ...rest } = dto;
+    await fs.updateDoc(ref, stripUndefined({ ...rest, updatedAt: new Date().toISOString() }));
+    return fromSnap(await fs.getDoc(ref));
+  },
+
+  increaseViews: async (id) => {
+    const { fs, db } = await getFirebase();
+    const ref = fs.doc(db, NOTICES_COL, id);
+    await fs.updateDoc(ref, { views: fs.increment(1) });
+    const snap = await fs.getDoc(ref);
+    if (!snap.exists()) throw new Error(`Notice ${id} not found`);
+    return fromSnap(snap);
+  },
+
+  delete: async (id) => {
+    const { fs, db } = await getFirebase();
+    await fs.deleteDoc(fs.doc(db, NOTICES_COL, id));
+  },
+
+  /**
+   * 초기 시드 7건을 Firestore에 1회 주입 (브라우저 콘솔에서 __seedNotices() 실행)
+   * 컬렉션에 문서가 이미 있으면 중단 (force=true 로 강제 가능)
+   */
+  seed: async (force = false) => {
+    const { fs, db } = await getFirebase();
+    const col = fs.collection(db, NOTICES_COL);
+    const existing = await fs.getDocs(fs.query(col, fs.limit(1)));
+    if (!existing.empty && !force) {
+      console.warn('[seed] notices 컬렉션에 이미 데이터가 있어 중단했습니다. __seedNotices(true)로 강제 실행할 수 있습니다.');
+      return 0;
+    }
+    const items = buildSeed();
+    const batch = fs.writeBatch(db);
+    items.forEach(({ id: _ignore, ...data }) => batch.set(fs.doc(col), data));
+    batch.set(fs.doc(db, ...COUNTER_PATH), { last: Math.max(...items.map((n) => n.no)) });
+    await batch.commit();
+    console.info(`[seed] ${items.length}건 등록 완료`);
+    return items.length;
+  },
+};
+
+/** 업로드 전 이미지를 최대 폭으로 리사이즈 → JPEG Blob */
+const imageToJpegBlob = async (file) => {
+  const img = await loadImage(await readAsDataUrl(file));
+  const scale = Math.min(1, MAX_IMAGE_WIDTH / img.width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('이미지를 변환할 수 없습니다.'))), 'image/jpeg', 0.85),
+  );
+};
+
+const fileStorageFirebase = {
+  /** 첨부파일 → Storage 업로드 후 메타데이터(url/path 포함) 반환 */
+  uploadFile: async (file) => {
+    const { st, storage } = await getFirebase();
+    const safeName = file.name.replace(/[\\/]/g, '_');
+    const path = `notices/attachments/${newId()}-${safeName}`;
+    const ref = st.ref(storage, path);
+    await st.uploadBytes(ref, file, { contentType: file.type || undefined });
+    const url = await st.getDownloadURL(ref);
+    return { name: file.name, size: file.size, type: file.type || '', url, path };
+  },
+
+  /** 에디터 이미지 → 리사이즈 후 Storage 업로드, downloadURL 반환 */
+  uploadImage: async (file) => {
+    const { st, storage } = await getFirebase();
+    const blob = await imageToJpegBlob(file);
+    const ref = st.ref(storage, `notices/images/${newId()}.jpg`);
+    await st.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
+    return st.getDownloadURL(ref);
+  },
+
+  /** 첨부파일 삭제 (path가 없는 레거시 항목은 무시) */
+  remove: async (attachment) => {
+    if (!attachment || !attachment.path) return;
+    const { st, storage } = await getFirebase();
+    try {
+      await st.deleteObject(st.ref(storage, attachment.path));
+    } catch (err) {
+      if (err && err.code === 'storage/object-not-found') return;
+      throw err;
+    }
+  },
+};
+
+// 콘솔에서 1회 실행해 시드 데이터를 넣을 수 있도록 노출 (필요 없으면 이 줄 삭제)
+window.__seedNotices = (force) => noticeFirebaseService.seed(force);
+
+/* ======================================================================
+ * 3. SERVICE ENTRY POINTS  (Mock으로 되돌리려면 아래 두 줄의 주석을 교체)
+ * ====================================================================== */
+const noticeService = noticeFirebaseService;    // ← noticeMockService
+const fileStorageService = fileStorageFirebase; // ← fileStorageMock
 
 /* ======================================================================
  * 4. COMMON UTILS / LAYOUT (banner, header, footer)
@@ -224,12 +587,14 @@ const escapeHtml = (value) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
+/** ISO → YYYY.MM.DD */
 const formatDate = (iso) => {
   const d = new Date(iso);
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())}`;
 };
 
+/** 등록 후 7일 이내 여부 */
 const isNew = (iso) => Date.now() - new Date(iso).getTime() < NEW_BADGE_DAYS * 86400000;
 
 const formatBytes = (bytes) => {
@@ -238,6 +603,7 @@ const formatBytes = (bytes) => {
   return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
 };
 
+/** 첨부파일 검증: 에러 메시지 또는 null */
 const validateAttachment = (file) => {
   const ext = file.name.split('.').pop().toLowerCase();
   if (!ALLOWED_EXT.includes(ext)) return `${file.name}: jpg, png, pdf 파일만 첨부할 수 있습니다.`;
@@ -282,6 +648,7 @@ async function copyText(text) {
   return ok;
 }
 
+/* ───────── HTML sanitizer (허용 태그/속성 화이트리스트) ───────── */
 const ALLOWED_TAGS = new Set([
   'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'DIV', 'SPAN', 'A', 'IMG',
   'UL', 'OL', 'LI', 'FONT', 'H1', 'H2', 'H3', 'BLOCKQUOTE',
@@ -296,7 +663,7 @@ const isSafeUrl = (value, allowDataImage = false) => {
   const v = value.trim();
   if (allowDataImage && /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(v)) return true;
   if (/^(https?:|mailto:|tel:)/i.test(v)) return true;
-  return !/^[a-z][a-z0-9+.-]*:/i.test(v);
+  return !/^[a-z][a-z0-9+.-]*:/i.test(v); // 스킴 없는 상대경로
 };
 
 function cleanStyle(el) {
@@ -395,6 +762,8 @@ const footerHtml = () => `
       <li><a href="../notice-board/notice.html">Notice</a></li>
     </ul>
     </div>
+    
+
     <span class="site-footer__bar"></span>
       <div class="site-footer__info">
         <p>FLATTEN Co., Ltd.</p>
@@ -402,6 +771,7 @@ const footerHtml = () => `
           CEO: Lee Sang In<span class="sep">|</span>Address: L117, L1 Floor, 15, Nonhyeon-ro 152-gil, Gangnam-gu, Seoul, Republic of Korea<span class="sep">|</span>Business Registration No: 637-87-01821
         </p>
       </div>
+    
   </footer>`;
 
 async function initBanner() {
@@ -435,6 +805,7 @@ async function initBanner() {
     show(0);
     start();
 
+    // 닫기 버튼 이벤트 (새로고침 시 다시 노출되도록 hidden 처리)
     const closeBtn = document.getElementById('top-banner-close');
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
@@ -448,6 +819,7 @@ async function initBanner() {
   }
 }
 
+/** 공지 배너 + 헤더(GNB) + 푸터를 <main> 앞/뒤에 삽입 */
 function mountLayout() {
   const main = document.querySelector('main');
   main.insertAdjacentHTML('beforebegin', bannerHtml() + headerHtml());
@@ -474,6 +846,11 @@ const SIZES = [
 const btn = (attrs, html, label) =>
   `<button type="button" class="editor__btn" ${attrs} aria-label="${label}" title="${label}">${html}</button>`;
 
+/**
+ * 리치 에디터 (contenteditable + execCommand)
+ * - 굵게/기울임/밑줄/정렬/링크/이미지, 더보기(목록·서식 지우기), 글꼴/크기
+ * - 이미지는 uploadImage(file) → URL 인터페이스로 저장소와 분리
+ */
 function createRichEditor(root, { placeholder = '', uploadImage, onError = () => {} }) {
   root.classList.add('editor');
   root.innerHTML = `
@@ -522,6 +899,7 @@ function createRichEditor(root, { placeholder = '', uploadImage, onError = () =>
     /* noop */
   }
 
+  /* 선택 영역 보존 (select/prompt 등으로 포커스를 잃어도 복원) */
   let saved = null;
   const saveRange = () => {
     const sel = window.getSelection();
@@ -585,8 +963,8 @@ function createRichEditor(root, { placeholder = '', uploadImage, onError = () =>
   };
 
   toolbar.addEventListener('mousedown', (e) => {
-    if (e.target.closest('select')) return;
-    e.preventDefault();
+    if (e.target.closest('select')) return; // select는 기본 동작 유지
+    e.preventDefault(); // 버튼 클릭 시 에디터 포커스/선택 유지
   });
 
   toolbar.addEventListener('click', (e) => {
@@ -639,6 +1017,7 @@ function createRichEditor(root, { placeholder = '', uploadImage, onError = () =>
     }
   });
 
+  /* 붙여넣기는 sanitize 후 삽입 */
   body.addEventListener('paste', (e) => {
     e.preventDefault();
     const html = e.clipboardData.getData('text/html');
@@ -841,6 +1220,7 @@ function initDetailPage() {
     try {
       let notice = await noticeService.getById(id);
       if (!notice) return notFound();
+      // 진입 시 조회수 +1 (같은 세션의 새로고침/재진입은 중복 집계하지 않음)
       if (viewGuard.markIfFirst(id)) notice = await noticeService.increaseViews(id);
       const adj = await noticeService.getAdjacent(id);
       render(notice, adj);
@@ -935,6 +1315,7 @@ function initFormPage() {
       onError: (msg) => setError('content', msg),
     });
 
+    /* 첨부파일 상태: 기존(메타데이터) / 신규(File) */
     let existing = notice ? [...(notice.attachments || [])] : [];
     const removedExisting = [];
     let newFiles = [];
@@ -1034,6 +1415,8 @@ function initFormPage() {
   })();
 }
 
+
+  /* ── bootstrap: <body data-page="list|detail|form"> ── */
   const pageType = document.body.dataset.page;
   if (pageType === 'list') initListPage();
   else if (pageType === 'detail') initDetailPage();

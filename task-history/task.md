@@ -184,6 +184,7 @@
 - 작업 후: 2장 상태 갱신 → 필요 시 6·7장 갱신 → 하단 이력에 한 줄 추가.
 
 ## 9. 이력
+| 2026-11-06 | Q&A 게시판 추가: `qna-board/`에 목록·작성·수정·상세 페이지와 `js/qna.js` 구현. 질문 유형 5종, 로그인 회원 작성, 본인 수정/삭제, 비공개 질문, 관리자 답변, 답변완료 표시를 Firebase Firestore로 연결. `firestore.rules`에 `qna/{questionId}` 및 `answers` 권한 규칙 추가. |
 | 날짜 | 내용 |
 |---|---|
 | 2026-11-02 | `AGENTS.md` v1.0.0 작성·전달 |
@@ -197,3 +198,5 @@
 | 2026-11-04 | Section 3 `solutions-container` 첨부 이미지 레퍼런스 반영 전면 재구현: 기존 그리드 카드 삭제, 상단 "Our Solutions >" 타이틀과 3개 솔루션 행(Shoeprize, ERP, Queue 로고 svg 적용 및 설명 텍스트) 구분선(border-top #333) 레이아웃 구현, 부모 섹션 배경색을 Section 2와 동일한 `var(--color-dark-bg)`로 통일, 데스크탑(가로 75% 2열)/모바일(세로 1열) 반응형 미디어쿼리 대응 |
 | 2026-11-04 | Section 4 `section--campaigns` 신규 구현 및 헤더 로고 색상 반전 CSS 수정: 첨부 덤프 매칭 이미지(flatten-1~4) 4개 캠페인 카드 배치, 데스크탑 2열 비대칭 메이슨리 오프셋(우측 컬럼 clamp(80px~120px) 하향 배치) 및 모바일 1열 스택 반응형 미디어쿼리 적용, 다크 섹션 스크롤 시 헤더 로고 흰색 반전 CSS(.header--dark .header__logo img { filter: brightness(0) invert(1) }) 적용 |
 | 2026-11-04 | Section 4 `section--campaigns` Swiper.js 재구현: 임시 `swiper--wrap` 섹션 삭제, 기존 4카드 그리드 제거, Swiper CDN(v11) `<head>` + `</body>` 추가, 외부 Swiper(#campaignSwiper, 5슬라이드, 각 슬라이드=큰이미지1+작은카드2 가로배치), 내부 큰이미지 `.csl-big-swiper` Swiper(자동재생 3장순환 fade), 데스크탑(가로분할 46%+나머지)/모바일(세로스택) 반응형 미디어쿼리 적용 |
+
+

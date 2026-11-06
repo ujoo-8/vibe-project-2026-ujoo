@@ -21,49 +21,9 @@
 
 <body>
 
-    <!-- Header (Fixed) -->
-    <header class="header" id="site-header">
-      <div class="shop">
-        <a href="https://www.shoeprize.com/" target="_blank">
-          shoeprize
-          <img class="nav-arrow" src="https://static.shoeprize.com/flatten/icon-arrow-w.png" alt="arrow" width="14" height="14">
-        </a>
-      </div>
-      <div class="header--wrap">
-        <div class="header__logo">
-          <a href="/">
-            <img
-              src="https://static.shoeprize.com/flatten/logo-flatten.svg"
-              alt="FLATTEN"
-            />
-          </a>
-          <!-- <span class="header__logo-icon">⁚⁚</span> FLATTEN -->
-        </div>
-        <nav class="header__nav" aria-label="메인 네비게이션">
-          <ul class="header__menu-list">
-            <li><a href="../index.html#page-2" class="header__menu-link">Why FLATTEN</a></li>
-            <li><a href="../page/oursolutions.html" class="header__menu-link">Our Solutions</a></li>
-            <li><a href="../index.html#page-4" class="header__menu-link">All Campaigns</a></li>
-            <li><a href="../index.html#page-5" class="header__menu-link">Newsroom</a></li>
-            <li><a href="#" class="header__menu-link">Contact Us</a></li>
-            <li><a href="../notice-board/notice.html" class="header__menu-link">Notice</a></li>
-          </ul>
-          <button
-            class="header__hamburger"
-            aria-label="모바일 메뉴 열기"
-            aria-controls="mobile-menu"
-            aria-expanded="false"
-            id="hamburger-btn"
-          >
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
-        </nav>
-      </div>
-    </header>
+    <!-- Shared header and mobile menu: js/layout.js -->
 
-    <main>   
+<main>   
     
     <!-- Our Solutions Area -->
     <section id="our-solutions">
@@ -120,57 +80,16 @@
     </section>
     </main>
 
-    <footer class="footer" id="site-footer">
-      <div class="footer__inner">
-        <div class="footer__top">
-          <a href="/" class="footer__logo" aria-label="FLATTEN">
-            <img src="../images/logo-flatten-g.svg" alt="FLATTEN" />
-          </a>
-          <ul class="footer__nav">
-            <li><a href="#page-2">Why FLATTEN</a></li>
-            <li>
-              <a href="#page-3">Our Solutions</a>
-              <ul class="footer__sub">
-                <li><a href="#page-3">shoeprize</a></li>
-                <li><a href="#page-3">FLATTEN ERP</a></li>
-                <li><a href="#page-3">FLATTEN QUEUE</a></li>
-              </ul>
-            </li>
-            <li><a href="#page-4">All Campaigns</a></li>
-            <li><a href="#page-5">Newsroom</a></li>
-            <li>
-              <a href="#" target="_blank" rel="noopener">Careers &#8599;</a>
-            </li>
-            <li><a href="#">Contact Us</a></li>
-          </ul>
-        </div>
-        <hr class="footer__divider" />
-        <p class="footer__name">FLATTEN Co., Ltd.</p>
-        <p class="footer__info">
-          <span class="footer__info-line">CEO: Lee Sang In</span
-          ><span class="sep">|</span>
-          <span class="footer__info-line footer__info-line--addr"
-            >Address: L117, L1 Floor, 15, Nonhyeon-ro 152-gil, Gangnam-gu,
-            Seoul, Republic of Korea</span
-          ><span class="sep">|</span>
-          <span class="footer__info-line footer__info-line--biz"
-            >Business Registration No: 637-87-01821</span
-          >
-        </p>
-        <a href="/" class="footer__bottom-logo" aria-label="FLATTEN">
-          <img src="../images/logo-flatten-g.svg" alt="FLATTEN" />
-        </a>
-      </div>
-    </footer>
+    <!-- Shared footer: js/layout.js -->
 
     
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <!-- Notice Data & Banner Script -->
-    <script src="./js/notice.js"></script>
-    <!-- Interactive JavaScript -->
-    <script src="./js/main.js"></script>
-
+    <!-- Shared site layout -->
+    <script src="../js/layout.js"></script>
+    <script src="../js/notice.js"></script>
 </body>
 
 </html>
+
+

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLATTEN - 로그인 / 회원가입</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            black: '#111111',
+                            dark: '#1c1c1c',
+                            gray: '#767676',
+                            lightBg: '#f8f9fa',
+                            border: '#e5e5e5',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Smooth transitions */
+        .tab-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #111111;
+        }
+    </style>
+</head>
+<body class="bg-white text-brand-black font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-black selection:text-white">
+
+    <!-- HEADER NAVIGATION -->
+    <header class="w-full border-b border-brand-border bg-white sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <a href="#" class="flex items-center gap-2.5 group">
+                <svg class="w-6 h-6 text-brand-black transition-transform group-hover:scale-105" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 6h18l-3 4H3V6z"/>
+                    <path d="M3 11h15l-3 4H3v-4z"/>
+                    <path d="M3 16h12l-3 4H3v-4z"/>
+                </svg>
+                <span class="font-extrabold text-2xl tracking-tighter text-brand-black">FLATTEN</span>
+            </a>
+
+            <!-- Desktop Navigation Links -->
+            <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-brand-black">
+                <a href="#" class="hover:opacity-60 transition-opacity">Why FLATTEN</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">Our Solutions</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">All Campaigns</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">Newsroom</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">Contact Us</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">Notice</a>
+            </nav>
+
+            <!-- Mobile Menu Toggle Button -->
+            <button id="mobile-menu-btn" class="md:hidden text-brand-black p-2 focus:outline-none">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden border-b border-brand-border bg-white px-6 py-4">
+            <nav class="flex flex-col space-y-4 text-sm font-medium text-brand-black">
+                <a href="#" class="hover:opacity-60 transition-opacity">Why FLATTEN</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">Our Solutions</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">All Campaigns</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">Newsroom</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">Contact Us</a>
+                <a href="#" class="hover:opacity-60 transition-opacity">Notice</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8">
+        <div class="w-full max-w-md">
+
+            <!-- Title & Subtitle -->
+            <div class="text-center mb-10">
+                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-brand-black mb-3">
+                    Welcome to FLATTEN
+                </h1>
+                <p class="text-sm text-brand-gray">
+                    브랜드의 성장을 이끄는 IT 솔루션 파트너
+                </p>
+            </div>
+
+            <!-- Tab Switcher (Login / Sign Up) -->
+            <div class="flex border-b border-brand-border mb-8">
+                <button id="tab-login" onclick="switchTab('login')" class="tab-btn w-1/2 py-3.5 text-center text-base font-bold border-b-2 border-brand-black text-brand-black focus:outline-none">
+                    로그인
+                </button>
+                <button id="tab-signup" onclick="switchTab('signup')" class="tab-btn w-1/2 py-3.5 text-center text-base font-semibold border-b-2 border-transparent text-brand-gray hover:text-brand-black focus:outline-none">
+                    회원가입
+                </button>
+            </div>
+
+            <!-- Notification Banner / Alert Box -->
+            <div id="alert-box" class="hidden mb-6 p-4 rounded-md text-sm font-medium border"></div>
+
+            <!-- LOGIN FORM -->
+            <form id="form-login" onsubmit="handleLogin(event)" class="space-y-5">
+                <div>
+                    <label for="login-id" class="block text-xs font-bold uppercase tracking-wider text-brand-black mb-2">
+                        아이디 또는 이메일
+                    </label>
+                    <input type="text" id="login-id" required placeholder="아이디 또는 이메일을 입력하세요" 
+                        class="form-input w-full px-4 py-3.5 text-sm bg-white border border-brand-border rounded-md transition-colors placeholder:text-gray-400">
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="login-password" class="block text-xs font-bold uppercase tracking-wider text-brand-black">
+                            비밀번호
+                        </label>
+                        <a href="#" onclick="showNotice('비밀번호 재설정 링크가 발송되었습니다.'); return false;" class="text-xs text-brand-gray hover:text-brand-black underline underline-offset-2">
+                            비밀번호 찾기
+                        </a>
+                    </div>
+                    <input type="password" id="login-password" required placeholder="비밀번호를 입력하세요" 
+                        class="form-input w-full px-4 py-3.5 text-sm bg-white border border-brand-border rounded-md transition-colors placeholder:text-gray-400">
+                </div>
+
+                <div class="flex items-center justify-between pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 rounded border-brand-border text-brand-black focus:ring-0 accent-black">
+                        <span class="text-xs text-brand-gray">로그인 상태 유지</span>
+                    </label>
+                </div>
+
+                <button type="submit" 
+                    class="w-full bg-brand-black text-white font-bold py-4 px-6 rounded-md hover:bg-neutral-800 transition-all duration-200 text-sm tracking-wide shadow-sm mt-4">
+                    로그인
+                </button>
+            </form>
+
+            <!-- SIGN UP FORM -->
+            <form id="form-signup" onsubmit="handleSignUp(event)" class="space-y-5 hidden">
+                <!-- 1. 이름 (Name) -->
+                <div>
+                    <label for="signup-name" class="block text-xs font-bold uppercase tracking-wider text-brand-black mb-2">
+                        이름 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="signup-name" required placeholder="홍길동" 
+                        class="form-input w-full px-4 py-3.5 text-sm bg-white border border-brand-border rounded-md transition-colors placeholder:text-gray-400">
+                </div>
+
+                <!-- 2. 아이디 (Username) -->
+                <div>
+                    <label for="signup-username" class="block text-xs font-bold uppercase tracking-wider text-brand-black mb-2">
+                        아이디 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="signup-username" required placeholder="영문, 숫자 조합 4~16자" 
+                        class="form-input w-full px-4 py-3.5 text-sm bg-white border border-brand-border rounded-md transition-colors placeholder:text-gray-400">
+                </div>
+
+                <!-- 3. 이메일 (Email) -->
+                <div>
+                    <label for="signup-email" class="block text-xs font-bold uppercase tracking-wider text-brand-black mb-2">
+                        이메일 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" id="signup-email" required placeholder="example@flatten.io" 
+                        class="form-input w-full px-4 py-3.5 text-sm bg-white border border-brand-border rounded-md transition-colors placeholder:text-gray-400">
+                </div>
+
+                <!-- 4. 비밀번호 (Password) -->
+                <div>
+                    <label for="signup-password" class="block text-xs font-bold uppercase tracking-wider text-brand-black mb-2">
+                        비밀번호 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" id="signup-password" required placeholder="8자 이상 영문, 숫자, 특수문자 조합" 
+                        class="form-input w-full px-4 py-3.5 text-sm bg-white border border-brand-border rounded-md transition-colors placeholder:text-gray-400">
+                </div>
+
+                <div class="pt-2">
+                    <label class="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" required class="w-4 h-4 mt-0.5 rounded border-brand-border text-brand-black focus:ring-0 accent-black">
+                        <span class="text-xs text-brand-gray leading-normal">
+                            <a href="#" class="underline text-brand-black">서비스 이용약관</a> 및 
+                            <a href="#" class="underline text-brand-black">개인정보 처리방침</a>에 동의합니다.
+                        </span>
+                    </label>
+                </div>
+
+                <button type="submit" 
+                    class="w-full bg-brand-black text-white font-bold py-4 px-6 rounded-md hover:bg-neutral-800 transition-all duration-200 text-sm tracking-wide shadow-sm mt-4">
+                    회원가입 완료
+                </button>
+            </form>
+
+        </div>
+    </main>
+
+    <!-- FOOTER (Matching dt.png Dark Theme) -->
+    <footer class="w-full bg-brand-dark text-neutral-400 text-xs py-16 px-6 border-t border-neutral-800">
+        <div class="max-w-7xl mx-auto space-y-12">
+            
+            <!-- Footer Top Row: Logo & Navigation Links -->
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+                <!-- Logo -->
+                <div class="flex items-center gap-2.5 text-white">
+                    <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 6h18l-3 4H3V6z"/>
+                        <path d="M3 11h15l-3 4H3v-4z"/>
+                        <path d="M3 16h12l-3 4H3v-4z"/>
+                    </svg>
+                    <span class="font-extrabold text-2xl tracking-tighter text-white">FLATTEN</span>
+                </div>
+
+                <!-- Footer Navigation -->
+                <nav class="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-x-8 gap-y-4 text-sm font-semibold text-white">
+                    <a href="#" class="hover:text-neutral-400 transition-colors">Why FLATTEN</a>
+                    <div class="flex flex-col space-y-2">
+                        <a href="#" class="hover:text-neutral-400 transition-colors">Our Solutions</a>
+                        <div class="flex flex-col space-y-1.5 pl-0 text-xs text-neutral-400 font-normal">
+                            <a href="#" class="hover:text-white transition-colors">shoeprize</a>
+                            <a href="#" class="hover:text-white transition-colors">FLATTEN ERP</a>
+                            <a href="#" class="hover:text-white transition-colors">FLATTEN QUEUE</a>
+                        </div>
+                    </div>
+                    <a href="#" class="hover:text-neutral-400 transition-colors">All Campaigns</a>
+                    <a href="#" class="hover:text-neutral-400 transition-colors">Newsroom</a>
+                    <a href="#" class="hover:text-neutral-400 transition-colors flex items-center gap-1">
+                        Careers <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                    <a href="#" class="hover:text-neutral-400 transition-colors">Contact Us</a>
+                </nav>
+            </div>
+
+            <!-- Divider Line -->
+            <div class="w-full h-px bg-neutral-800"></div>
+
+            <!-- Footer Bottom Row: Business Info & Copyright -->
+            <div class="space-y-2 text-neutral-500 leading-relaxed">
+                <p class="font-medium text-neutral-400">FLATTEN Co., Ltd.</p>
+                <p>
+                    CEO: Lee Sang In &nbsp;|&nbsp; 
+                    Address: L117, L1 Floor, 15, Nonhyeon-ro 152-gil, Gangnam-gu, Seoul, Republic of Korea &nbsp;|&nbsp; 
+                    Business Registration No: 637-87-01821
+                </p>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT FOR INTERACTION -->
+    <script>
+        // Tab switching logic (Login vs Sign Up)
+        function switchTab(tab) {
+            const loginBtn = document.getElementById('tab-login');
+            const signupBtn = document.getElementById('tab-signup');
+            const loginForm = document.getElementById('form-login');
+            const signupForm = document.getElementById('form-signup');
+            const alertBox = document.getElementById('alert-box');
+
+            // Hide alert box on tab switch
+            alertBox.classList.add('hidden');
+
+            if (tab === 'login') {
+                loginBtn.classList.add('border-brand-black', 'text-brand-black', 'font-bold');
+                loginBtn.classList.remove('border-transparent', 'text-brand-gray', 'font-semibold');
+
+                signupBtn.classList.add('border-transparent', 'text-brand-gray', 'font-semibold');
+                signupBtn.classList.remove('border-brand-black', 'text-brand-black', 'font-bold');
+
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+            } else {
+                signupBtn.classList.add('border-brand-black', 'text-brand-black', 'font-bold');
+                signupBtn.classList.remove('border-transparent', 'text-brand-gray', 'font-semibold');
+
+                loginBtn.classList.add('border-transparent', 'text-brand-gray', 'font-semibold');
+                loginBtn.classList.remove('border-brand-black', 'text-brand-black', 'font-bold');
+
+                signupForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        // Show Alert Message Box (Replacing alert())
+        function showNotice(message, isSuccess = true) {
+            const alertBox = document.getElementById('alert-box');
+            alertBox.textContent = message;
+            alertBox.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-200', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+
+            if (isSuccess) {
+                alertBox.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+            } else {
+                alertBox.classList.add('bg-red-50', 'text-red-700', 'border-red-200');
+            }
+        }
+
+        // Handle Login Submission
+        function handleLogin(event) {
+            event.preventDefault();
+            const id = document.getElementById('login-id').value;
+            showNotice(`${id}님, 성공적으로 로그인되었습니다.`, true);
+        }
+
+        // Handle Sign Up Submission
+        function handleSignUp(event) {
+            event.preventDefault();
+            const name = document.getElementById('signup-name').value;
+            showNotice(`${name}님, FLATTEN 회원가입이 완료되었습니다! 로그인해 주세요.`, true);
+            
+            // Auto switch to login tab after brief delay
+            setTimeout(() => {
+                switchTab('login');
+            }, 1800);
+        }
+
+        // Mobile Menu Toggle
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>

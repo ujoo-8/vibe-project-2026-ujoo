@@ -19,124 +19,8 @@
     <link rel="stylesheet" href="./css/main.css" />
   </head>
   <body>
-    <!-- Top Banner (최상단 띠배너) -->
-    <div class="top-banner" id="top-banner" style="height: 40px;">
-      <div class="top-banner__items"></div>
-      <button type="button" class="top-banner__close" id="top-banner-close" aria-label="배너 닫기">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-    </div>
 
-    <!-- Header (Fixed) -->
-    <header class="header" id="site-header">
-      <!-- <div class="notice">
-        
-      </div> -->
-      <div class="shop">
-        <a href="https://www.shoeprize.com/" target="_blank">
-          shoeprize
-          <img class="nav-arrow" src="https://static.shoeprize.com/flatten/icon-arrow-w.png" alt="arrow" width="14" height="14">
-        </a>
-      </div>
-      <div class="header--wrap">
-        <div class="header__logo">
-          <a href="/">
-            <img
-              src="https://static.shoeprize.com/flatten/logo-flatten.svg"
-              alt="FLATTEN"
-            />
-          </a>
-          <!-- <span class="header__logo-icon">⁚⁚</span> FLATTEN -->
-        </div>
-        <nav class="header__nav" aria-label="메인 네비게이션">
-          <ul class="header__menu-list">
-            <li><a href="#page-2" class="header__menu-link">Why FLATTEN</a></li>
-            <li><a href="./pages/oursolutions.html" class="header__menu-link">Our Solutions</a></li>
-            <li><a href="#page-4" class="header__menu-link">All Campaigns</a></li>
-            <li><a href="#page-5" class="header__menu-link">Newsroom</a></li>
-            <li><a href="#" class="header__menu-link">Contact Us</a></li>
-            <li><a href="./notice-board/notice.html" class="header__menu-link">Notice</a></li>
-            <li><a href="#" class="header__menu-link">Login/Join</a></li>
-          </ul>
-          <button
-            class="header__hamburger"
-            aria-label="모바일 메뉴 열기"
-            aria-controls="mobile-menu"
-            aria-expanded="false"
-            id="hamburger-btn"
-          >
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
-        </nav>
-      </div>
-    </header>
-
-    <!-- Mobile Menu Drawer -->
-    <aside
-      class="mobile-menu"
-      id="mobile-menu"
-      aria-hidden="true"
-      aria-label="모바일 메뉴"
-    >
-    <div class="header--inner">
-      <a href="/">
-        <img class="logo" src="images/logo-flatten.svg" alt="">
-      </a>
-      <button
-        class="mobile-menu__close"
-        id="menu-close-btn"
-        aria-label="메뉴 닫기"
-      ></button>
-    </div>
-      
-      <div class="mobile-menu__inner">
-        <ul class="mobile-menu__list">
-          <li class="mobile-menu__item">
-            <a href="#page-2" class="mobile-menu__link" data-menu-link
-              >Why FLATTEN</a
-            >
-          </li>
-          <li class="mobile-menu__item">
-            <a
-              href="./pages/oursolutions.html"
-              class="mobile-menu__link mobile-menu__link--static"
-              data-menu-link
-              >Our Solutions</a
-            >
-            <ul class="mobile-menu__sub">
-              <li><a href="./pages/oursolutions.html" data-menu-link>shoeprize</a></li>
-              <li><a href="./pages/oursolutions.html" data-menu-link>ERP</a></li>
-              <li><a href="./pages/oursolutions.html" data-menu-link>QUEUE</a></li>
-            </ul>
-          </li>
-          <li class="mobile-menu__item">
-            <a href="#" class="mobile-menu__link" data-menu-link
-              >All Campaigns</a
-            >
-          </li>
-          <li class="mobile-menu__item">
-            <a href="#" class="mobile-menu__link" data-menu-link
-              >Newsroom</a
-            >
-          </li>
-          <li class="mobile-menu__item">
-            <a href="#" class="mobile-menu__link" target="_blank" rel="noopener"
-              >Careers <span class="mobile-menu__arrow"><img src="https://static.shoeprize.com/flatten/icon-arrow-w.png" alt=""></span></a
-            >
-          </li>
-          <li class="mobile-menu__item">
-            <a href="#" class="mobile-menu__link" data-menu-link>Contact Us</a>
-          </li>
-        </ul>
-        <div class="mobile-menu__cta-wrap">
-          <a href="#" class="mobile-menu__cta" target="_blank" rel="noopener"
-            >Login/Join</span></a
-          >
-        </div>
-      </div>
-    </aside>
+    <!-- Shared header and mobile menu: js/layout.js -->
 
     <!-- Right Floating Section Indicator -->
     <nav
@@ -768,55 +652,18 @@
       </section>
     </main>
 
-    <footer class="footer" id="site-footer">
-      <div class="footer__inner">
-        <div class="footer__top">
-          <a href="/" class="footer__logo" aria-label="FLATTEN">
-            <img src="images/logo-flatten-g.svg" alt="FLATTEN" />
-          </a>
-          <ul class="footer__nav">
-            <li><a href="#page-2">Why FLATTEN</a></li>
-            <li>
-              <a href="#page-3">Our Solutions</a>
-              <ul class="footer__sub">
-                <li><a href="#page-3">shoeprize</a></li>
-                <li><a href="#page-3">FLATTEN ERP</a></li>
-                <li><a href="#page-3">FLATTEN QUEUE</a></li>
-              </ul>
-            </li>
-            <li><a href="#page-4">All Campaigns</a></li>
-            <li><a href="#page-5">Newsroom</a></li>
-            <li>
-              <a href="#" target="_blank" rel="noopener">Careers &#8599;</a>
-            </li>
-            <li><a href="#">Contact Us</a></li>
-          </ul>
-        </div>
-        <hr class="footer__divider" />
-        <p class="footer__name">FLATTEN Co., Ltd.</p>
-        <p class="footer__info">
-          <span class="footer__info-line">CEO: Lee Sang In</span
-          ><span class="sep">|</span>
-          <span class="footer__info-line footer__info-line--addr"
-            >Address: L117, L1 Floor, 15, Nonhyeon-ro 152-gil, Gangnam-gu,
-            Seoul, Republic of Korea</span
-          ><span class="sep">|</span>
-          <span class="footer__info-line footer__info-line--biz"
-            >Business Registration No: 637-87-01821</span
-          >
-        </p>
-        <a href="/" class="footer__bottom-logo" aria-label="FLATTEN">
-          <img src="images/logo-flatten-g.svg" alt="FLATTEN" />
-        </a>
-      </div>
-    </footer>
+    <!-- Shared footer: js/layout.js -->
 
     
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <!-- Shared site layout -->
+    <script src="./js/layout.js"></script>
     <!-- Notice Data & Banner Script -->
     <script src="./js/notice.js"></script>
     <!-- Interactive JavaScript -->
     <script src="./js/main.js"></script>
   </body>
 </html>
+
+

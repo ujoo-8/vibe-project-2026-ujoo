@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // 공지사항은 누구나 읽을 수 있고, 관리자만 작성/수정/삭제합니다.
+    match /notices/{noticeId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 공지 번호 발급용 카운터는 관리자만 접근합니다.
+    match /meta/noticeCounter {
+      allow read, write: if isAdmin();
+    }
+
+    // 로그인한 사용자는 자신의 프로필을 읽을 수 있습니다.
+    // 관리자는 관리자 계정 보정 작업을 위해 전체 프로필을 읽고 쓸 수 있습니다.
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if signedIn() && request.auth.uid == userId;
+      allow update: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // 회원가입 중 아이디/이메일 중복 확인 및 예약 문서 생성에 사용합니다.
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /emails/{emailKey} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    function canViewQna(data) {
+      return !data.isPrivate
+        || (signedIn() && (data.authorId == request.auth.uid || isAdmin()));
+    }
+
+    // 묻고답하기 질문: 공개 질문은 누구나 읽고, 비공개 질문은 작성자/관리자만 읽습니다.
+    match /qna/{questionId} {
+      allow read: if canViewQna(resource.data);
+      allow create: if signedIn() && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if signedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.authorId == resource.data.authorId;
+
+      // 답변은 관리자만 작성할 수 있습니다.
+      match /answers/{answerId} {
+        allow read: if canViewQna(get(/databases/$(database)/documents/qna/$(questionId)).data);
+        allow create, update, delete: if isAdmin();
+      }
+    }
+  }
+}

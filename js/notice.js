@@ -350,13 +350,14 @@ let firebasePromise = null;
 const getFirebase = () => {
   if (!firebasePromise) {
     firebasePromise = (async () => {
-      const [appMod, fs, st] = await Promise.all([
+      const [appMod, fs, st, au] = await Promise.all([
         import(`${FIREBASE_CDN}/firebase-app.js`),
         import(`${FIREBASE_CDN}/firebase-firestore.js`),
         import(`${FIREBASE_CDN}/firebase-storage.js`),
+        import(`${FIREBASE_CDN}/firebase-auth.js`),
       ]);
       const app = appMod.initializeApp(firebaseConfig);
-      return { fs, st, db: fs.getFirestore(app), storage: st.getStorage(app) };
+      return { fs, st, au, db: fs.getFirestore(app), storage: st.getStorage(app), auth: au.getAuth(app) };
     })();
     firebasePromise.catch(() => {
       firebasePromise = null;
@@ -365,11 +366,30 @@ const getFirebase = () => {
   return firebasePromise;
 };
 
+// Q&A 게시판 등 공통 Firebase 기능에서 동일한 초기화를 재사용합니다.
+window.__getFirebase = getFirebase;
+
 const fromSnap = (snap) => ({ ...snap.data(), id: snap.id });
 
 /** Firestore는 undefined 값을 허용하지 않으므로 제거 */
 const stripUndefined = (obj) =>
   Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+
+/** Firebase 오류를 화면에서 이해할 수 있는 메시지로 변환 */
+const mapFirestoreError = (err) => {
+  if (!err) return new Error('요청을 처리하지 못했습니다.');
+  if (err.code === 'permission-denied' || err.code === 'firestore/permission-denied') {
+    return fail(
+      '관리자 권한이 확인되지 않아 저장할 수 없습니다. Firebase Firestore 규칙에서 로그인한 사용자의 users 문서 role이 admin인지 확인해주세요.',
+      null,
+      err.code,
+    );
+  }
+  if (err.code === 'unauthenticated' || err.code === 'firestore/unauthenticated') {
+    return fail('로그인 상태가 만료되었습니다. 다시 로그인해주세요.', null, err.code);
+  }
+  return err;
+};
 
 const noticeFirebaseService = {
   getAll: async () => {
@@ -418,41 +438,51 @@ const noticeFirebaseService = {
 
   /** 게시글 번호(no)는 meta/noticeCounter를 트랜잭션으로 증가시켜 중복 없이 부여 */
   create: async (dto) => {
-    const { fs, db } = await getFirebase();
-    const col = fs.collection(db, NOTICES_COL);
-    const counterRef = fs.doc(db, ...COUNTER_PATH);
-    const newRef = fs.doc(col);
+    try {
+      const { fs, db, auth } = await getFirebase();
+      if (!auth.currentUser) throw fail('로그인 후 등록할 수 있습니다.', null, 'unauthenticated');
+      const col = fs.collection(db, NOTICES_COL);
+      const counterRef = fs.doc(db, ...COUNTER_PATH);
+      const newRef = fs.doc(col);
 
     // 카운터 문서가 아직 없으면 기존 최대 번호에서 이어서 시작
-    let base = 0;
-    const counterSnap = await fs.getDoc(counterRef);
-    if (!counterSnap.exists()) {
-      const top = await fs.getDocs(fs.query(col, fs.orderBy('no', 'desc'), fs.limit(1)));
-      base = top.empty ? 0 : top.docs[0].data().no || 0;
+      let base = 0;
+      const counterSnap = await fs.getDoc(counterRef);
+      if (!counterSnap.exists()) {
+        const top = await fs.getDocs(fs.query(col, fs.orderBy('no', 'desc'), fs.limit(1)));
+        base = top.empty ? 0 : top.docs[0].data().no || 0;
+      }
+
+      const now = new Date().toISOString();
+      const { id: _ignore, ...rest } = dto;
+      const data = stripUndefined({ ...rest, views: 0, createdAt: now, updatedAt: now });
+
+      const no = await fs.runTransaction(db, async (tx) => {
+        const c = await tx.get(counterRef);
+        const next = (c.exists() ? c.data().last : base) + 1;
+        tx.set(counterRef, { last: next });
+        tx.set(newRef, { ...data, no: next });
+        return next;
+      });
+      return { ...data, no, id: newRef.id };
+    } catch (err) {
+      throw mapFirestoreError(err);
     }
-
-    const now = new Date().toISOString();
-    const { id: _ignore, ...rest } = dto;
-    const data = stripUndefined({ ...rest, views: 0, createdAt: now, updatedAt: now });
-
-    const no = await fs.runTransaction(db, async (tx) => {
-      const c = await tx.get(counterRef);
-      const next = (c.exists() ? c.data().last : base) + 1;
-      tx.set(counterRef, { last: next });
-      tx.set(newRef, { ...data, no: next });
-      return next;
-    });
-    return { ...data, no, id: newRef.id };
   },
 
   update: async (id, dto) => {
-    const { fs, db } = await getFirebase();
-    const ref = fs.doc(db, NOTICES_COL, id);
-    const snap = await fs.getDoc(ref);
-    if (!snap.exists()) throw new Error(`Notice ${id} not found`);
-    const { id: _ignore, no: _no, views: _views, createdAt: _created, ...rest } = dto;
-    await fs.updateDoc(ref, stripUndefined({ ...rest, updatedAt: new Date().toISOString() }));
-    return fromSnap(await fs.getDoc(ref));
+    try {
+      const { fs, db, auth } = await getFirebase();
+      if (!auth.currentUser) throw fail('로그인 후 수정할 수 있습니다.', null, 'unauthenticated');
+      const ref = fs.doc(db, NOTICES_COL, id);
+      const snap = await fs.getDoc(ref);
+      if (!snap.exists()) throw new Error(`Notice ${id} not found`);
+      const { id: _ignore, no: _no, views: _views, createdAt: _created, ...rest } = dto;
+      await fs.updateDoc(ref, stripUndefined({ ...rest, updatedAt: new Date().toISOString() }));
+      return fromSnap(await fs.getDoc(ref));
+    } catch (err) {
+      throw mapFirestoreError(err);
+    }
   },
 
   increaseViews: async (id) => {
@@ -465,8 +495,13 @@ const noticeFirebaseService = {
   },
 
   delete: async (id) => {
-    const { fs, db } = await getFirebase();
-    await fs.deleteDoc(fs.doc(db, NOTICES_COL, id));
+    try {
+      const { fs, db, auth } = await getFirebase();
+      if (!auth.currentUser) throw fail('로그인 후 삭제할 수 있습니다.', null, 'unauthenticated');
+      await fs.deleteDoc(fs.doc(db, NOTICES_COL, id));
+    } catch (err) {
+      throw mapFirestoreError(err);
+    }
   },
 
   /**
@@ -545,10 +580,306 @@ const fileStorageFirebase = {
 window.__seedNotices = (force) => noticeFirebaseService.seed(force);
 
 /* ======================================================================
+ * 2-C. AUTH — Firebase Authentication + Firestore 회원 정보
+ *  - Firebase Auth는 이메일/비밀번호 방식이므로 "아이디"를 가상 이메일(아이디@auth.flatten.app)로 변환해 사용한다.
+ *    (실제 이메일은 회원 정보(users)에만 저장)
+ *  - Firebase 비밀번호 최소 길이(6자) 제한을 피하기 위해 비밀번호는 SHA-256으로 변환해 전달한다.
+ *  - Firestore 컬렉션
+ *      users/{uid}        : 이름·아이디·이메일·권한(role)
+ *      usernames/{아이디}  : 아이디 중복 방지용 (문서 ID가 곧 아이디)
+ *      emails/{이메일키}   : 이메일 중복 방지용
+ *  - 관리자 여부(role === 'admin')는 UI 표시용이며, 실제 쓰기 권한은 firestore.rules / storage.rules가 강제한다.
+ * ====================================================================== */
+const AUTH_EMAIL_DOMAIN = 'auth.flatten.app';
+const RESERVED_USERNAMES = ['admin', 'administrator', 'root'];
+const USERNAME_RE = /^[a-z0-9]{4,20}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PW_MIN = 4;
+const PW_MAX = 30;
+
+const ADMIN_ACCOUNT = {
+  name: '관리자',
+  username: 'admin',
+  password: '1111',
+  email: 'admin.com.@company.co.kr',
+};
+
+const validateName = (v) => (!v ? '이름을 입력해주세요.' : v.length < 2 || v.length > 20 ? '이름은 2~20자로 입력해주세요.' : '');
+const validateUsername = (v) => (!v ? '아이디를 입력해주세요.' : !USERNAME_RE.test(v) ? '아이디는 영문 소문자·숫자 4~20자로 입력해주세요.' : '');
+const validateEmail = (v) => (!v ? '이메일을 입력해주세요.' : !EMAIL_RE.test(v) ? '올바른 이메일 형식이 아닙니다.' : '');
+const validatePassword = (v) => (!v ? '비밀번호를 입력해주세요.' : v.length < PW_MIN || v.length > PW_MAX ? `비밀번호는 ${PW_MIN}~${PW_MAX}자로 입력해주세요.` : '');
+
+const toAuthEmail = (username) => `${username}@${AUTH_EMAIL_DOMAIN}`;
+const emailKey = (email) => encodeURIComponent(email.trim().toLowerCase());
+const isAdminUser = (user) => !!user && user.role === 'admin';
+
+const fail = (message, field = null, code = undefined) => Object.assign(new Error(message), { field, code });
+
+async function derivePassword(username, password) {
+  if (!globalThis.crypto || !globalThis.crypto.subtle) {
+    throw fail('https 또는 localhost 환경에서만 로그인할 수 있습니다. (file:// 로 열었다면 로컬 서버로 실행해주세요)');
+  }
+  const bytes = new TextEncoder().encode(`flatten-notice:${username}:${password}`);
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function mapAuthError(err) {
+  if (!err) return fail('알 수 없는 오류가 발생했습니다.');
+  if (!err.code) return err;
+  switch (err.code) {
+    case 'auth/email-already-in-use':
+      return fail('이미 사용 중인 아이디입니다.', 'username', err.code);
+    case 'auth/invalid-credential':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-email':
+      return fail('아이디 또는 비밀번호가 올바르지 않습니다.', null, err.code);
+    case 'auth/too-many-requests':
+      return fail('시도 횟수가 너무 많습니다. 잠시 후 다시 시도해주세요.', null, err.code);
+    case 'auth/operation-not-allowed':
+    case 'auth/configuration-not-found':
+      return fail('Firebase 콘솔에서 이메일/비밀번호 로그인 방식을 활성화해주세요.', null, err.code);
+    case 'auth/network-request-failed':
+      return fail('네트워크 오류가 발생했습니다. 연결을 확인해주세요.', null, err.code);
+    case 'permission-denied':
+      return fail('권한이 없습니다. Firebase 보안 규칙(firestore.rules)이 적용되었는지 확인해주세요.', null, err.code);
+    default:
+      console.error(err);
+      return fail(err.message || '요청을 처리하지 못했습니다.', null, err.code);
+  }
+}
+
+const authService = (() => {
+  let current = null;
+  let suppress = false; // 가입/로그인 처리 중에는 상태 변경 이벤트를 무시하고 마지막에 한 번만 반영
+  let started = false;
+  let readyResolve;
+  const readyPromise = new Promise((resolve) => {
+    readyResolve = resolve;
+  });
+  const listeners = new Set();
+
+  const loadProfile = async (fbUser) => {
+    if (!fbUser) return null;
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDoc(fs.doc(db, 'users', fbUser.uid));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    return { uid: fbUser.uid, name: d.name, username: d.username, email: d.email, role: d.role || 'user' };
+  };
+
+  const apply = async (fbUser) => {
+    try {
+      current = await loadProfile(fbUser);
+    } catch (err) {
+      console.error('Failed to load profile', err);
+      current = null;
+    }
+    readyResolve(current);
+    listeners.forEach((cb) => cb(current));
+  };
+
+  const start = () => {
+    if (started) return;
+    started = true;
+    getFirebase()
+      .then(({ au, auth }) =>
+        au.onAuthStateChanged(auth, (u) => {
+          if (!suppress) apply(u);
+        }),
+      )
+      .catch((err) => {
+        console.error('Failed to init auth', err);
+        readyResolve(null);
+      });
+  };
+
+  const isUsernameAvailable = async (raw) => {
+    const username = String(raw || '').trim().toLowerCase();
+    const msg = validateUsername(username);
+    if (msg) throw fail(msg, 'username');
+    if (RESERVED_USERNAMES.includes(username)) return false;
+    const { fs, db } = await getFirebase();
+    try {
+      return !(await fs.getDoc(fs.doc(db, 'usernames', username))).exists();
+    } catch (err) {
+      throw mapAuthError(err);
+    }
+  };
+
+  const isEmailAvailable = async (raw) => {
+    const email = String(raw || '').trim();
+    const msg = validateEmail(email);
+    if (msg) throw fail(msg, 'email');
+    const { fs, db } = await getFirebase();
+    try {
+      return !(await fs.getDoc(fs.doc(db, 'emails', emailKey(email)))).exists();
+    } catch (err) {
+      throw mapAuthError(err);
+    }
+  };
+
+  /** 가입 처리 (성공 시 로그아웃 상태로 종료 → 로그인 화면에서 직접 로그인) */
+  const register = async ({ name, username, password, email }, { asAdmin = false } = {}) => {
+    const n = String(name || '').trim();
+    const u = String(username || '').trim().toLowerCase();
+    const e = String(email || '').trim();
+    const checks = [
+      ['name', validateName(n)],
+      ['username', validateUsername(u)],
+      ['email', validateEmail(e)],
+      ['password', validatePassword(password || '')],
+    ];
+    const bad = checks.find(([, m]) => m);
+    if (bad) throw fail(bad[1], bad[0]);
+
+    if (!asAdmin) {
+      if (RESERVED_USERNAMES.includes(u)) throw fail('사용할 수 없는 아이디입니다.', 'username');
+      if (!(await isUsernameAvailable(u))) throw fail('이미 사용 중인 아이디입니다.', 'username');
+      if (!(await isEmailAvailable(e))) throw fail('이미 가입된 이메일입니다.', 'email');
+    }
+
+    const { fs, au, db, auth } = await getFirebase();
+    suppress = true;
+    let cred = null;
+    try {
+      cred = await au.createUserWithEmailAndPassword(auth, toAuthEmail(u), await derivePassword(u, password));
+      const uid = cred.user.uid;
+      const now = new Date().toISOString();
+      // 세 문서를 한 번에 생성 (이미 존재하는 아이디/이메일이면 규칙에 의해 전체 실패 → 중복 가입 방지)
+      const batch = fs.writeBatch(db);
+      batch.set(fs.doc(db, 'usernames', u), { uid, createdAt: now });
+      batch.set(fs.doc(db, 'emails', emailKey(e)), { uid, createdAt: now });
+      batch.set(fs.doc(db, 'users', uid), {
+        name: n,
+        username: u,
+        email: e,
+        role: asAdmin ? 'admin' : 'user',
+        createdAt: now,
+      });
+      await batch.commit();
+      await au.signOut(auth);
+    } catch (err) {
+      if (cred) {
+        try {
+          await au.deleteUser(cred.user); // 프로필 저장에 실패하면 생성된 인증 계정도 되돌린다
+        } catch {
+          /* noop */
+        }
+        try {
+          await au.signOut(auth);
+        } catch {
+          /* noop */
+        }
+      }
+      throw mapAuthError(err);
+    } finally {
+      suppress = false;
+      await apply(auth.currentUser);
+    }
+  };
+
+  const login = async (username, password) => {
+    const u = String(username || '').trim().toLowerCase();
+    if (!u || !password) throw fail('아이디와 비밀번호를 입력해주세요.');
+    const { au, auth } = await getFirebase();
+    suppress = true;
+    try {
+      const cred = await au.signInWithEmailAndPassword(auth, toAuthEmail(u), await derivePassword(u, password));
+      const profile = await loadProfile(cred.user);
+      if (!profile) {
+        await au.signOut(auth);
+        throw fail('회원 정보를 찾을 수 없습니다. 관리자에게 문의해주세요.');
+      }
+      return profile;
+    } catch (err) {
+      throw mapAuthError(err);
+    } finally {
+      suppress = false;
+      await apply(auth.currentUser);
+    }
+  };
+
+  const logout = async () => {
+    const { au, auth } = await getFirebase();
+    await au.signOut(auth);
+  };
+
+  /** 관리자 계정이 인증만 있고 프로필 문서가 빠진 경우를 복구 */
+  const ensureAdminDocs = async () => {
+    const { fs, au, db, auth } = await getFirebase();
+    const { username, password, name, email } = ADMIN_ACCOUNT;
+    suppress = true;
+    try {
+      const cred = await au.signInWithEmailAndPassword(auth, toAuthEmail(username), await derivePassword(username, password));
+      const uid = cred.user.uid;
+      const now = new Date().toISOString();
+      const docs = [
+        [fs.doc(db, 'users', uid), { name, username, email, role: 'admin', createdAt: now }],
+        [fs.doc(db, 'usernames', username), { uid, createdAt: now }],
+        [fs.doc(db, 'emails', emailKey(email)), { uid, createdAt: now }],
+      ];
+      for (const [ref, data] of docs) {
+        if (!(await fs.getDoc(ref)).exists()) await fs.setDoc(ref, data);
+      }
+      await au.signOut(auth);
+    } finally {
+      suppress = false;
+      await apply(auth.currentUser);
+    }
+  };
+
+  /** 관리자 계정 수동 등록 (브라우저 콘솔에서 __createAdmin() 1회 실행) */
+  const seedAdmin = async () => {
+    try {
+      await register(ADMIN_ACCOUNT, { asAdmin: true });
+      return '관리자 계정을 생성했습니다. (아이디: admin)';
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') {
+        await ensureAdminDocs();
+        return '관리자 인증 계정이 이미 있어 프로필 정보를 확인/보완했습니다.';
+      }
+      throw err;
+    }
+  };
+
+  return {
+    ready: () => {
+      start();
+      return readyPromise;
+    },
+    getUser: () => current,
+    isAdmin: () => isAdminUser(current),
+    onChange: (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    isUsernameAvailable,
+    isEmailAvailable,
+    signUp: (data) => register(data),
+    login,
+    logout,
+    seedAdmin,
+  };
+})();
+
+window.__createAdmin = () =>
+  authService
+    .seedAdmin()
+    .then((msg) => console.info(`[admin] ${msg}`))
+    .catch((err) => console.error('[admin] 실패:', err.message || err));
+
+/* ======================================================================
  * 3. SERVICE ENTRY POINTS  (Mock으로 되돌리려면 아래 두 줄의 주석을 교체)
  * ====================================================================== */
 const noticeService = noticeFirebaseService;    // ← noticeMockService
 const fileStorageService = fileStorageFirebase; // ← fileStorageMock
+
+window.__getNoticePreviews = () => noticeService.getLatest(3);
+window.__authService = authService;
+window.dispatchEvent(new Event('notice-service-ready'));
+window.dispatchEvent(new Event('auth-service-ready'));
 
 /* ======================================================================
  * 4. COMMON UTILS / LAYOUT (banner, header, footer)
@@ -723,109 +1054,25 @@ function sanitizeHtml(html) {
   return doc.body.innerHTML;
 }
 
-const LOGO = 'https://static.shoeprize.com/flatten/logo-flatten-g.svg';
-const NAV = [
-  ['Why FLATTEN', 'index.html#page-2'],
-  ['Our Solutions', '../pages/oursolutions.html'],
-  ['All Campaigns', 'index.html#page-4'],
-  ['Newsroom', 'index.html#page-5'],
-  ['Contact Us', '#'],
-  ['Notice', 'notice-board/notice.html'],
-];
+// 공통 헤더·모바일 메뉴·푸터는 js/layout.js에서 관리합니다.
 
-const bannerHtml = () => `
-  <div class="top-banner" id="top-banner">
-    <div class="top-banner__items"></div>
-    <button type="button" class="top-banner__close" id="top-banner-close" aria-label="배너 닫기">${ICONS.close}</button>
-  </div>`;
+/** 로그인 후 돌아갈 주소: 같은 폴더의 *.html(?쿼리)만 허용 */
+const safeRedirect = (value) =>
+  value && /^[A-Za-z0-9_-]+\.html(\?[A-Za-z0-9_\-=&%.]*)?$/.test(value) ? value : 'notice.html';
 
-const headerHtml = () => `
-  <header class="site-header">
-    <a class="site-header__logo" href="../index.html" aria-label="FLATTEN 홈">
-      <img src="${LOGO}" alt="FLATTEN" />
-    </a>
-    <nav aria-label="메인 네비게이션">
-      <ul class="site-header__nav">
-        ${NAV.map(([label, href]) => `<li><a href="${href}">${label}</a></li>`).join('')}
-      </ul>
-    </nav>
-  </header>`;
+const currentPageRef = () => `${location.pathname.split('/').pop() || 'notice.html'}${location.search}`;
 
-const footerHtml = () => `
-  <footer class="site-footer">
-    <div class="site-footer__left">
-      <a href="index.html" aria-label="FLATTEN"><img src="${LOGO}" alt="FLATTEN" /></a>
-      <ul class="site-footer__nav">
-      ${NAV.slice(0, 4).map(([label, href]) => `<li><a href="${href}">${label}</a></li>`).join('')}
-      <li><a href="#" target="_blank" rel="noopener">Careers &#8599;</a></li>
-      <li><a href="#">Contact Us</a></li>
-      <li><a href="../notice-board/notice.html">Notice</a></li>
-    </ul>
-    </div>
-    
-
-    <span class="site-footer__bar"></span>
-      <div class="site-footer__info">
-        <p>FLATTEN Co., Ltd.</p>
-        <p>
-          CEO: Lee Sang In<span class="sep">|</span>Address: L117, L1 Floor, 15, Nonhyeon-ro 152-gil, Gangnam-gu, Seoul, Republic of Korea<span class="sep">|</span>Business Registration No: 637-87-01821
-        </p>
-      </div>
-    
-  </footer>`;
-
-async function initBanner() {
-  const el = document.getElementById('top-banner');
-  try {
-    const latest = await noticeService.getLatest(3);
-    if (!latest.length) {
-      el.hidden = true;
-      return;
-    }
-    const items = el.querySelector('.top-banner__items');
-    items.innerHTML = latest
-      .map(
-        (n) =>
-          `<a class="top-banner__item" href="notice-detail.html?id=${encodeURIComponent(n.id)}">${ICONS.megaphone}<span>${escapeHtml(n.title)}</span></a>`,
-      )
-      .join('');
-
-    const itemEls = [...items.children];
-    let idx = 0;
-    let timer = null;
-    const show = (i) => {
-      idx = i;
-      itemEls.forEach((it, n) => it.classList.toggle('is-active', n === i));
-    };
-    const start = () => {
-      if (latest.length < 2) return;
-      clearInterval(timer);
-      timer = setInterval(() => show((idx + 1) % latest.length), 4000);
-    };
-    show(0);
-    start();
-
-    // 닫기 버튼 이벤트 (새로고침 시 다시 노출되도록 hidden 처리)
-    const closeBtn = document.getElementById('top-banner-close');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        clearInterval(timer);
-        el.hidden = true;
-      });
-    }
-  } catch (err) {
-    console.error('Failed to load banner', err);
-    el.hidden = true;
-  }
+function renderAccessDenied(app, user) {
+  const loginHref = `login.html?redirect=${encodeURIComponent(currentPageRef())}`;
+  app.innerHTML = `
+    <p class="notice-empty">${user ? '관리자만 접근할 수 있는 페이지입니다.' : '로그인이 필요한 페이지입니다.'}</p>
+    <div class="detail-actions">
+      <a class="btn-outline" href="notice.html">${ICONS.list}목록으로</a>
+      ${user ? '' : `<a class="btn-primary btn-sm" href="${escapeHtml(loginHref)}">로그인</a>`}
+    </div>`;
 }
 
 /** 공지 배너 + 헤더(GNB) + 푸터를 <main> 앞/뒤에 삽입 */
-function mountLayout() {
-  const main = document.querySelector('main');
-  main.insertAdjacentHTML('beforebegin', bannerHtml() + headerHtml());
-  main.insertAdjacentHTML('afterend', footerHtml());
-  initBanner();
-}
 
 /* ======================================================================
  * 5. RICH EDITOR
@@ -1046,7 +1293,6 @@ function createRichEditor(root, { placeholder = '', uploadImage, onError = () =>
  * 6. PAGES
  * ====================================================================== */
 function initListPage() {
-  mountLayout();
 
   const params = new URLSearchParams(location.search);
   const q = (params.get('q') || '').trim();
@@ -1060,6 +1306,15 @@ function initListPage() {
 
   form.elements.q.value = q;
   form.elements.category.value = category;
+
+  // 글쓰기 버튼은 관리자에게만 노출
+  const writeBtn = form.querySelector('a[href="notice-write.html"]');
+  if (writeBtn) {
+    writeBtn.style.display = 'none';
+    authService.ready().then((user) => {
+      writeBtn.style.display = isAdminUser(user) ? '' : 'none';
+    });
+  }
 
   const pageUrl = (p) => {
     const sp = new URLSearchParams();
@@ -1136,7 +1391,6 @@ function initListPage() {
 }
 
 function initDetailPage() {
-  mountLayout();
 
   const app = document.getElementById('notice-app');
   const id = getParam('id');
@@ -1188,10 +1442,14 @@ function initDetailPage() {
       </nav>
       <div class="detail-actions">
         <a class="btn-outline" href="notice.html">${ICONS.list}목록으로</a>
-        <div class="detail-actions__admin">
+        ${
+          authService.isAdmin()
+            ? `<div class="detail-actions__admin">
           <a class="btn-outline btn-sm" href="notice-edit.html?id=${encodeURIComponent(n.id)}">수정</a>
           <button type="button" class="btn-outline btn-sm btn-danger" id="delete-btn">삭제</button>
-        </div>
+        </div>`
+            : ''
+        }
       </div>`;
 
     document.getElementById('share-btn').addEventListener('click', async () => {
@@ -1199,7 +1457,8 @@ function initDetailPage() {
       showToast(ok ? '링크가 복사되었습니다.' : '링크 복사에 실패했습니다.');
     });
 
-    document.getElementById('delete-btn').addEventListener('click', async (e) => {
+    const deleteBtn = document.getElementById('delete-btn');
+    if (deleteBtn) deleteBtn.addEventListener('click', async (e) => {
       if (!window.confirm('이 게시글을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.')) return;
       e.currentTarget.disabled = true;
       try {
@@ -1217,6 +1476,7 @@ function initDetailPage() {
   (async () => {
     if (!id) return notFound();
     app.innerHTML = '<p class="notice-empty">로딩 중...</p>';
+    await authService.ready(); // 관리자 버튼 노출 여부를 알아야 렌더링 가능
     try {
       let notice = await noticeService.getById(id);
       if (!notice) return notFound();
@@ -1232,7 +1492,6 @@ function initDetailPage() {
 }
 
 function initFormPage() {
-  mountLayout();
 
   const isEdit = document.body.dataset.mode === 'edit';
   const app = document.getElementById('notice-app');
@@ -1401,9 +1660,11 @@ function initFormPage() {
   }
 
   (async () => {
+    app.innerHTML = '<p class="notice-empty">로딩 중...</p>';
+    const user = await authService.ready();
+    if (!isAdminUser(user)) return renderAccessDenied(app, user); // 글쓰기/수정은 관리자 전용
     if (!isEdit) return renderForm(null);
     if (!id) return notFound();
-    app.innerHTML = '<p class="notice-empty">로딩 중...</p>';
     try {
       const notice = await noticeService.getById(id);
       if (!notice) return notFound();
@@ -1416,9 +1677,221 @@ function initFormPage() {
 }
 
 
-  /* ── bootstrap: <body data-page="list|detail|form"> ── */
+/** 로그인 페이지 (하단에 회원가입 폼 배치) */
+function initLoginPage() {
+
+  const app = document.getElementById('notice-app');
+  const redirect = safeRedirect(getParam('redirect'));
+  const redirectQs = getParam('redirect') ? `&redirect=${encodeURIComponent(redirect)}` : '';
+
+  app.innerHTML = `
+    <div class="auth-wrap">
+
+      <div class="auth-tabs" role="tablist" aria-label="로그인 / 회원가입">
+        <button type="button" class="auth-tab" role="tab" id="tab-login" data-tab="login" aria-selected="true" aria-controls="panel-login">로그인</button>
+        <button type="button" class="auth-tab" role="tab" id="tab-signup" data-tab="signup" aria-selected="false" aria-controls="panel-signup">회원가입</button>
+      </div>
+
+      <section class="auth-card" id="panel-login" role="tabpanel" aria-labelledby="tab-login">
+        <p class="auth-banner" id="signup-done" hidden>회원가입이 완료되었습니다. 로그인해주세요.</p>
+        <form id="login-form" novalidate>
+          <div class="auth-field">
+            <label for="l-username">아이디</label>
+            <input id="l-username" class="input" type="text" autocomplete="username" autocapitalize="none" placeholder="아이디를 입력하세요." />
+          </div>
+          <div class="auth-field">
+            <label for="l-password">비밀번호</label>
+            <input id="l-password" class="input" type="password" autocomplete="current-password" placeholder="비밀번호를 입력하세요." />
+          </div>
+          <p class="field-error" id="err-login" role="alert" hidden></p>
+          <button type="submit" class="btn-primary auth-submit" id="login-btn">로그인</button>
+        </form>
+      </section>
+
+      <section class="auth-card" id="panel-signup" role="tabpanel" aria-labelledby="tab-signup" hidden>
+        <p class="auth-sub">아래 정보를 입력해 가입해주세요.</p>
+        <form id="signup-form" novalidate>
+          <div class="auth-field">
+            <label for="s-name">이름</label>
+            <input id="s-name" class="input" type="text" maxlength="20" autocomplete="name" placeholder="이름을 입력하세요." />
+            <p id="msg-name" role="alert" hidden></p>
+          </div>
+          <div class="auth-field">
+            <label for="s-username">아이디</label>
+            <div class="auth-inline">
+              <input id="s-username" class="input" type="text" maxlength="20" autocomplete="off" autocapitalize="none" placeholder="영문 소문자·숫자 4~20자" />
+              <button type="button" class="btn-outline btn-sm" id="check-username">중복확인</button>
+            </div>
+            <p id="msg-username" role="alert" hidden></p>
+          </div>
+          <div class="auth-field">
+            <label for="s-email">이메일</label>
+            <div class="auth-inline">
+              <input id="s-email" class="input" type="text" inputmode="email" autocomplete="email" autocapitalize="none" placeholder="example@email.com" />
+              <button type="button" class="btn-outline btn-sm" id="check-email">중복확인</button>
+            </div>
+            <p id="msg-email" role="alert" hidden></p>
+          </div>
+          <div class="auth-field">
+            <label for="s-password">비밀번호</label>
+            <input id="s-password" class="input" type="password" maxlength="${PW_MAX}" autocomplete="new-password" placeholder="${PW_MIN}~${PW_MAX}자" />
+            <p id="msg-password" role="alert" hidden></p>
+          </div>
+          <div class="auth-field">
+            <label for="s-password2">비밀번호 확인</label>
+            <input id="s-password2" class="input" type="password" maxlength="${PW_MAX}" autocomplete="new-password" placeholder="비밀번호를 한 번 더 입력하세요." />
+            <p id="msg-password2" role="alert" hidden></p>
+          </div>
+          <p class="field-error" id="msg-signup" role="alert" hidden></p>
+          <button type="submit" class="btn-primary auth-submit" id="signup-btn">가입하기</button>
+        </form>
+      </section>
+    </div>`;
+
+  if (getParam('signup') === '1') document.getElementById('signup-done').hidden = false;
+
+  /* ── 탭: 로그인(기본) / 회원가입 ── */
+  const tabs = [...app.querySelectorAll('.auth-tab')];
+  const selectTab = (name) => {
+    tabs.forEach((t) => {
+      const on = t.dataset.tab === name;
+      t.setAttribute('aria-selected', String(on));
+      document.getElementById(`panel-${t.dataset.tab}`).hidden = !on;
+    });
+  };
+  tabs.forEach((t) => t.addEventListener('click', () => selectTab(t.dataset.tab)));
+  if (location.hash === '#signup') selectTab('signup');
+
+  const setMsg = (key, text, ok = false) => {
+    const el = document.getElementById(`msg-${key}`);
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = ok ? 'field-ok' : 'field-error';
+    el.hidden = !text;
+  };
+
+  /* ── 로그인 ── */
+  const loginForm = document.getElementById('login-form');
+  const loginBtn = document.getElementById('login-btn');
+  const errLogin = document.getElementById('err-login');
+  const setLoginError = (msg) => {
+    errLogin.textContent = msg || '';
+    errLogin.hidden = !msg;
+  };
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    const username = document.getElementById('l-username').value.trim();
+    const password = document.getElementById('l-password').value;
+    if (!username || !password) {
+      setLoginError('아이디와 비밀번호를 입력해주세요.');
+      return;
+    }
+    loginBtn.disabled = true;
+    loginBtn.textContent = '로그인 중...';
+    try {
+      await authService.login(username, password);
+      location.href = redirect;
+    } catch (err) {
+      setLoginError(err.message || '로그인에 실패했습니다.');
+      loginBtn.disabled = false;
+      loginBtn.textContent = '로그인';
+    }
+  });
+
+  /* ── 회원가입 ── */
+  const signupForm = document.getElementById('signup-form');
+  const signupBtn = document.getElementById('signup-btn');
+  const nameEl = document.getElementById('s-name');
+  const usernameEl = document.getElementById('s-username');
+  const emailEl = document.getElementById('s-email');
+  const pwEl = document.getElementById('s-password');
+  const pw2El = document.getElementById('s-password2');
+
+  // 값이 바뀌면 이전 확인/오류 메시지 제거
+  [
+    [nameEl, 'name'],
+    [usernameEl, 'username'],
+    [emailEl, 'email'],
+    [pwEl, 'password'],
+    [pw2El, 'password2'],
+  ].forEach(([el, key]) => el.addEventListener('input', () => setMsg(key, '')));
+
+  const runCheck = async (key, el, validate, check, okText, takenText) => {
+    const value = key === 'username' ? el.value.trim().toLowerCase() : el.value.trim();
+    const msg = validate(value);
+    if (msg) {
+      setMsg(key, msg);
+      return;
+    }
+    try {
+      const available = await check(value);
+      setMsg(key, available ? okText : takenText, available);
+    } catch (err) {
+      setMsg(key, err.message || '확인에 실패했습니다.');
+    }
+  };
+
+  document.getElementById('check-username').addEventListener('click', () =>
+    runCheck('username', usernameEl, validateUsername, authService.isUsernameAvailable, '사용 가능한 아이디입니다.', '이미 사용 중인 아이디입니다.'),
+  );
+  document.getElementById('check-email').addEventListener('click', () =>
+    runCheck('email', emailEl, validateEmail, authService.isEmailAvailable, '사용 가능한 이메일입니다.', '이미 가입된 이메일입니다.'),
+  );
+
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setMsg('signup', '');
+    const name = nameEl.value.trim();
+    const username = usernameEl.value.trim().toLowerCase();
+    const email = emailEl.value.trim();
+    const password = pwEl.value;
+    const password2 = pw2El.value;
+
+    const pwMsg = validatePassword(password);
+    const errors = [
+      ['name', nameEl, validateName(name)],
+      ['username', usernameEl, validateUsername(username) || (RESERVED_USERNAMES.includes(username) ? '사용할 수 없는 아이디입니다.' : '')],
+      ['email', emailEl, validateEmail(email)],
+      ['password', pwEl, pwMsg],
+      ['password2', pw2El, !pwMsg && password !== password2 ? '비밀번호가 일치하지 않습니다.' : !password2 ? '비밀번호를 한 번 더 입력해주세요.' : ''],
+    ];
+    errors.forEach(([key, , msg]) => setMsg(key, msg));
+    const firstBad = errors.find(([, , msg]) => msg);
+    if (firstBad) {
+      firstBad[1].focus();
+      return;
+    }
+
+    signupBtn.disabled = true;
+    signupBtn.textContent = '가입 중...';
+    try {
+      await authService.signUp({ name, username, password, email });
+      location.href = `login.html?signup=1${redirectQs}`;
+    } catch (err) {
+      setMsg(err.field && document.getElementById(`msg-${err.field}`) ? err.field : 'signup', err.message || '회원가입에 실패했습니다.');
+      signupBtn.disabled = false;
+      signupBtn.textContent = '가입하기';
+    }
+  });
+
+  // 이미 로그인된 상태라면 로그인 페이지에 머무를 필요가 없으므로 이동
+  authService.ready().then((user) => {
+    if (user) location.replace(redirect);
+  });
+}
+
+  /* ── bootstrap: <body data-page="list|detail|form|login"> ── */
   const pageType = document.body.dataset.page;
   if (pageType === 'list') initListPage();
   else if (pageType === 'detail') initDetailPage();
   else if (pageType === 'form') initFormPage();
+  else if (pageType === 'login') initLoginPage();
 })();
+
+
+
+
+
+

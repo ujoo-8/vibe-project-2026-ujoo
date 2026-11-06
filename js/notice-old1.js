@@ -325,10 +325,522 @@ const viewGuard = {
 };
 
 /* ======================================================================
- * 3. SERVICE ENTRY POINTS  ★ Firebase 전환 시 아래 두 줄만 교체 ★
+ * 2-B. DATA LAYER — Firebase (Firestore + Storage)
+ *  - 번들러 없이 동작하도록 Firebase 모듈 SDK를 CDN(gstatic)에서 동적 import 한다.
+ *  - 컬렉션: notices / 게시글 번호 카운터: meta/noticeCounter
+ *  - createdAt/updatedAt은 기존 모델과 동일하게 ISO 문자열로 저장 (UI 변경 없음)
  * ====================================================================== */
-const noticeService = noticeMockService;       // → noticeFirebaseService
-const fileStorageService = fileStorageMock;    // → fileStorageFirebase
+const FIREBASE_VERSION = '10.14.1';
+const FIREBASE_CDN = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}`;
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyCsS5dW0CrHb5yHPZ9v9lk-xuZSE1RYhF8',
+  authDomain: 'vibe-project-ujoo.firebaseapp.com',
+  projectId: 'vibe-project-ujoo',
+  storageBucket: 'vibe-project-ujoo.firebasestorage.app',
+  messagingSenderId: '626569777591',
+  appId: '1:626569777591:web:0a36dd2d2aa911c99f9832',
+};
+
+const NOTICES_COL = 'notices';
+const COUNTER_PATH = ['meta', 'noticeCounter'];
+
+let firebasePromise = null;
+/** Firebase SDK를 최초 1회만 로드/초기화 (실패 시 다음 호출에서 재시도) */
+const getFirebase = () => {
+  if (!firebasePromise) {
+    firebasePromise = (async () => {
+      const [appMod, fs, st, au] = await Promise.all([
+        import(`${FIREBASE_CDN}/firebase-app.js`),
+        import(`${FIREBASE_CDN}/firebase-firestore.js`),
+        import(`${FIREBASE_CDN}/firebase-storage.js`),
+        import(`${FIREBASE_CDN}/firebase-auth.js`),
+      ]);
+      const app = appMod.initializeApp(firebaseConfig);
+      return { fs, st, au, db: fs.getFirestore(app), storage: st.getStorage(app), auth: au.getAuth(app) };
+    })();
+    firebasePromise.catch(() => {
+      firebasePromise = null;
+    });
+  }
+  return firebasePromise;
+};
+
+const fromSnap = (snap) => ({ ...snap.data(), id: snap.id });
+
+/** Firestore는 undefined 값을 허용하지 않으므로 제거 */
+const stripUndefined = (obj) =>
+  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+
+const noticeFirebaseService = {
+  getAll: async () => {
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDocs(fs.query(fs.collection(db, NOTICES_COL), fs.orderBy('createdAt', 'desc')));
+    return sortDesc(snap.docs.map(fromSnap));
+  },
+
+  getById: async (id) => {
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDoc(fs.doc(db, NOTICES_COL, id));
+    return snap.exists() ? fromSnap(snap) : null;
+  },
+
+  /**
+   * 분류 필터 + 제목 검색 + 최신순 + 페이지네이션
+   * Firestore는 부분 문자열 검색을 지원하지 않으므로 전체를 가져와 클라이언트에서 필터링한다.
+   * (공지 게시판 규모 기준. 수천 건 이상이 되면 검색 서비스/서버 페이지네이션 도입 필요)
+   */
+  list: async ({ page = 1, pageSize = 5, category = '', keyword = '' } = {}) => {
+    let list = await noticeFirebaseService.getAll();
+    if (category) list = list.filter((n) => n.category === category);
+    const kw = keyword.trim().toLowerCase();
+    if (kw) list = list.filter((n) => n.title.toLowerCase().includes(kw));
+    const total = list.length;
+    const start = (page - 1) * pageSize;
+    return { items: list.slice(start, start + pageSize), total, page, pageSize };
+  },
+
+  getLatest: async (n = 3) => {
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDocs(
+      fs.query(fs.collection(db, NOTICES_COL), fs.orderBy('createdAt', 'desc'), fs.limit(n)),
+    );
+    return sortDesc(snap.docs.map(fromSnap)).slice(0, n);
+  },
+
+  /** prev = 한 칸 더 오래된 글, next = 한 칸 더 최신 글 */
+  getAdjacent: async (id) => {
+    const list = await noticeFirebaseService.getAll();
+    const idx = list.findIndex((n) => n.id === id);
+    if (idx === -1) return { prev: null, next: null };
+    const pick = (n) => (n ? { id: n.id, title: n.title } : null);
+    return { prev: pick(list[idx + 1]), next: pick(list[idx - 1]) };
+  },
+
+  /** 게시글 번호(no)는 meta/noticeCounter를 트랜잭션으로 증가시켜 중복 없이 부여 */
+  create: async (dto) => {
+    const { fs, db } = await getFirebase();
+    const col = fs.collection(db, NOTICES_COL);
+    const counterRef = fs.doc(db, ...COUNTER_PATH);
+    const newRef = fs.doc(col);
+
+    // 카운터 문서가 아직 없으면 기존 최대 번호에서 이어서 시작
+    let base = 0;
+    const counterSnap = await fs.getDoc(counterRef);
+    if (!counterSnap.exists()) {
+      const top = await fs.getDocs(fs.query(col, fs.orderBy('no', 'desc'), fs.limit(1)));
+      base = top.empty ? 0 : top.docs[0].data().no || 0;
+    }
+
+    const now = new Date().toISOString();
+    const { id: _ignore, ...rest } = dto;
+    const data = stripUndefined({ ...rest, views: 0, createdAt: now, updatedAt: now });
+
+    const no = await fs.runTransaction(db, async (tx) => {
+      const c = await tx.get(counterRef);
+      const next = (c.exists() ? c.data().last : base) + 1;
+      tx.set(counterRef, { last: next });
+      tx.set(newRef, { ...data, no: next });
+      return next;
+    });
+    return { ...data, no, id: newRef.id };
+  },
+
+  update: async (id, dto) => {
+    const { fs, db } = await getFirebase();
+    const ref = fs.doc(db, NOTICES_COL, id);
+    const snap = await fs.getDoc(ref);
+    if (!snap.exists()) throw new Error(`Notice ${id} not found`);
+    const { id: _ignore, no: _no, views: _views, createdAt: _created, ...rest } = dto;
+    await fs.updateDoc(ref, stripUndefined({ ...rest, updatedAt: new Date().toISOString() }));
+    return fromSnap(await fs.getDoc(ref));
+  },
+
+  increaseViews: async (id) => {
+    const { fs, db } = await getFirebase();
+    const ref = fs.doc(db, NOTICES_COL, id);
+    await fs.updateDoc(ref, { views: fs.increment(1) });
+    const snap = await fs.getDoc(ref);
+    if (!snap.exists()) throw new Error(`Notice ${id} not found`);
+    return fromSnap(snap);
+  },
+
+  delete: async (id) => {
+    const { fs, db } = await getFirebase();
+    await fs.deleteDoc(fs.doc(db, NOTICES_COL, id));
+  },
+
+  /**
+   * 초기 시드 7건을 Firestore에 1회 주입 (브라우저 콘솔에서 __seedNotices() 실행)
+   * 컬렉션에 문서가 이미 있으면 중단 (force=true 로 강제 가능)
+   */
+  seed: async (force = false) => {
+    const { fs, db } = await getFirebase();
+    const col = fs.collection(db, NOTICES_COL);
+    const existing = await fs.getDocs(fs.query(col, fs.limit(1)));
+    if (!existing.empty && !force) {
+      console.warn('[seed] notices 컬렉션에 이미 데이터가 있어 중단했습니다. __seedNotices(true)로 강제 실행할 수 있습니다.');
+      return 0;
+    }
+    const items = buildSeed();
+    const batch = fs.writeBatch(db);
+    items.forEach(({ id: _ignore, ...data }) => batch.set(fs.doc(col), data));
+    batch.set(fs.doc(db, ...COUNTER_PATH), { last: Math.max(...items.map((n) => n.no)) });
+    await batch.commit();
+    console.info(`[seed] ${items.length}건 등록 완료`);
+    return items.length;
+  },
+};
+
+/** 업로드 전 이미지를 최대 폭으로 리사이즈 → JPEG Blob */
+const imageToJpegBlob = async (file) => {
+  const img = await loadImage(await readAsDataUrl(file));
+  const scale = Math.min(1, MAX_IMAGE_WIDTH / img.width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('이미지를 변환할 수 없습니다.'))), 'image/jpeg', 0.85),
+  );
+};
+
+const fileStorageFirebase = {
+  /** 첨부파일 → Storage 업로드 후 메타데이터(url/path 포함) 반환 */
+  uploadFile: async (file) => {
+    const { st, storage } = await getFirebase();
+    const safeName = file.name.replace(/[\\/]/g, '_');
+    const path = `notices/attachments/${newId()}-${safeName}`;
+    const ref = st.ref(storage, path);
+    await st.uploadBytes(ref, file, { contentType: file.type || undefined });
+    const url = await st.getDownloadURL(ref);
+    return { name: file.name, size: file.size, type: file.type || '', url, path };
+  },
+
+  /** 에디터 이미지 → 리사이즈 후 Storage 업로드, downloadURL 반환 */
+  uploadImage: async (file) => {
+    const { st, storage } = await getFirebase();
+    const blob = await imageToJpegBlob(file);
+    const ref = st.ref(storage, `notices/images/${newId()}.jpg`);
+    await st.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
+    return st.getDownloadURL(ref);
+  },
+
+  /** 첨부파일 삭제 (path가 없는 레거시 항목은 무시) */
+  remove: async (attachment) => {
+    if (!attachment || !attachment.path) return;
+    const { st, storage } = await getFirebase();
+    try {
+      await st.deleteObject(st.ref(storage, attachment.path));
+    } catch (err) {
+      if (err && err.code === 'storage/object-not-found') return;
+      throw err;
+    }
+  },
+};
+
+// 콘솔에서 1회 실행해 시드 데이터를 넣을 수 있도록 노출 (필요 없으면 이 줄 삭제)
+window.__seedNotices = (force) => noticeFirebaseService.seed(force);
+
+/* ======================================================================
+ * 2-C. AUTH — Firebase Authentication + Firestore 회원 정보
+ *  - Firebase Auth는 이메일/비밀번호 방식이므로 "아이디"를 가상 이메일(아이디@auth.flatten.app)로 변환해 사용한다.
+ *    (실제 이메일은 회원 정보(users)에만 저장)
+ *  - Firebase 비밀번호 최소 길이(6자) 제한을 피하기 위해 비밀번호는 SHA-256으로 변환해 전달한다.
+ *  - Firestore 컬렉션
+ *      users/{uid}        : 이름·아이디·이메일·권한(role)
+ *      usernames/{아이디}  : 아이디 중복 방지용 (문서 ID가 곧 아이디)
+ *      emails/{이메일키}   : 이메일 중복 방지용
+ *  - 관리자 여부(role === 'admin')는 UI 표시용이며, 실제 쓰기 권한은 firestore.rules / storage.rules가 강제한다.
+ * ====================================================================== */
+const AUTH_EMAIL_DOMAIN = 'auth.flatten.app';
+const RESERVED_USERNAMES = ['admin', 'administrator', 'root'];
+const USERNAME_RE = /^[a-z0-9]{4,20}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PW_MIN = 4;
+const PW_MAX = 30;
+
+const ADMIN_ACCOUNT = {
+  name: '관리자',
+  username: 'admin',
+  password: '1111',
+  email: 'admin.com.@company.co.kr',
+};
+
+const validateName = (v) => (!v ? '이름을 입력해주세요.' : v.length < 2 || v.length > 20 ? '이름은 2~20자로 입력해주세요.' : '');
+const validateUsername = (v) => (!v ? '아이디를 입력해주세요.' : !USERNAME_RE.test(v) ? '아이디는 영문 소문자·숫자 4~20자로 입력해주세요.' : '');
+const validateEmail = (v) => (!v ? '이메일을 입력해주세요.' : !EMAIL_RE.test(v) ? '올바른 이메일 형식이 아닙니다.' : '');
+const validatePassword = (v) => (!v ? '비밀번호를 입력해주세요.' : v.length < PW_MIN || v.length > PW_MAX ? `비밀번호는 ${PW_MIN}~${PW_MAX}자로 입력해주세요.` : '');
+
+const toAuthEmail = (username) => `${username}@${AUTH_EMAIL_DOMAIN}`;
+const emailKey = (email) => encodeURIComponent(email.trim().toLowerCase());
+const isAdminUser = (user) => !!user && user.role === 'admin';
+
+const fail = (message, field = null, code = undefined) => Object.assign(new Error(message), { field, code });
+
+async function derivePassword(username, password) {
+  if (!globalThis.crypto || !globalThis.crypto.subtle) {
+    throw fail('https 또는 localhost 환경에서만 로그인할 수 있습니다. (file:// 로 열었다면 로컬 서버로 실행해주세요)');
+  }
+  const bytes = new TextEncoder().encode(`flatten-notice:${username}:${password}`);
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function mapAuthError(err) {
+  if (!err) return fail('알 수 없는 오류가 발생했습니다.');
+  if (!err.code) return err;
+  switch (err.code) {
+    case 'auth/email-already-in-use':
+      return fail('이미 사용 중인 아이디입니다.', 'username', err.code);
+    case 'auth/invalid-credential':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-email':
+      return fail('아이디 또는 비밀번호가 올바르지 않습니다.', null, err.code);
+    case 'auth/too-many-requests':
+      return fail('시도 횟수가 너무 많습니다. 잠시 후 다시 시도해주세요.', null, err.code);
+    case 'auth/operation-not-allowed':
+    case 'auth/configuration-not-found':
+      return fail('Firebase 콘솔에서 이메일/비밀번호 로그인 방식을 활성화해주세요.', null, err.code);
+    case 'auth/network-request-failed':
+      return fail('네트워크 오류가 발생했습니다. 연결을 확인해주세요.', null, err.code);
+    case 'permission-denied':
+      return fail('권한이 없습니다. Firebase 보안 규칙(firestore.rules)이 적용되었는지 확인해주세요.', null, err.code);
+    default:
+      console.error(err);
+      return fail(err.message || '요청을 처리하지 못했습니다.', null, err.code);
+  }
+}
+
+const authService = (() => {
+  let current = null;
+  let suppress = false; // 가입/로그인 처리 중에는 상태 변경 이벤트를 무시하고 마지막에 한 번만 반영
+  let started = false;
+  let readyResolve;
+  const readyPromise = new Promise((resolve) => {
+    readyResolve = resolve;
+  });
+  const listeners = new Set();
+
+  const loadProfile = async (fbUser) => {
+    if (!fbUser) return null;
+    const { fs, db } = await getFirebase();
+    const snap = await fs.getDoc(fs.doc(db, 'users', fbUser.uid));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    return { uid: fbUser.uid, name: d.name, username: d.username, email: d.email, role: d.role || 'user' };
+  };
+
+  const apply = async (fbUser) => {
+    try {
+      current = await loadProfile(fbUser);
+    } catch (err) {
+      console.error('Failed to load profile', err);
+      current = null;
+    }
+    readyResolve(current);
+    listeners.forEach((cb) => cb(current));
+  };
+
+  const start = () => {
+    if (started) return;
+    started = true;
+    getFirebase()
+      .then(({ au, auth }) =>
+        au.onAuthStateChanged(auth, (u) => {
+          if (!suppress) apply(u);
+        }),
+      )
+      .catch((err) => {
+        console.error('Failed to init auth', err);
+        readyResolve(null);
+      });
+  };
+
+  const isUsernameAvailable = async (raw) => {
+    const username = String(raw || '').trim().toLowerCase();
+    const msg = validateUsername(username);
+    if (msg) throw fail(msg, 'username');
+    if (RESERVED_USERNAMES.includes(username)) return false;
+    const { fs, db } = await getFirebase();
+    try {
+      return !(await fs.getDoc(fs.doc(db, 'usernames', username))).exists();
+    } catch (err) {
+      throw mapAuthError(err);
+    }
+  };
+
+  const isEmailAvailable = async (raw) => {
+    const email = String(raw || '').trim();
+    const msg = validateEmail(email);
+    if (msg) throw fail(msg, 'email');
+    const { fs, db } = await getFirebase();
+    try {
+      return !(await fs.getDoc(fs.doc(db, 'emails', emailKey(email)))).exists();
+    } catch (err) {
+      throw mapAuthError(err);
+    }
+  };
+
+  /** 가입 처리 (성공 시 로그아웃 상태로 종료 → 로그인 화면에서 직접 로그인) */
+  const register = async ({ name, username, password, email }, { asAdmin = false } = {}) => {
+    const n = String(name || '').trim();
+    const u = String(username || '').trim().toLowerCase();
+    const e = String(email || '').trim();
+    const checks = [
+      ['name', validateName(n)],
+      ['username', validateUsername(u)],
+      ['email', validateEmail(e)],
+      ['password', validatePassword(password || '')],
+    ];
+    const bad = checks.find(([, m]) => m);
+    if (bad) throw fail(bad[1], bad[0]);
+
+    if (!asAdmin) {
+      if (RESERVED_USERNAMES.includes(u)) throw fail('사용할 수 없는 아이디입니다.', 'username');
+      if (!(await isUsernameAvailable(u))) throw fail('이미 사용 중인 아이디입니다.', 'username');
+      if (!(await isEmailAvailable(e))) throw fail('이미 가입된 이메일입니다.', 'email');
+    }
+
+    const { fs, au, db, auth } = await getFirebase();
+    suppress = true;
+    let cred = null;
+    try {
+      cred = await au.createUserWithEmailAndPassword(auth, toAuthEmail(u), await derivePassword(u, password));
+      const uid = cred.user.uid;
+      const now = new Date().toISOString();
+      // 세 문서를 한 번에 생성 (이미 존재하는 아이디/이메일이면 규칙에 의해 전체 실패 → 중복 가입 방지)
+      const batch = fs.writeBatch(db);
+      batch.set(fs.doc(db, 'usernames', u), { uid, createdAt: now });
+      batch.set(fs.doc(db, 'emails', emailKey(e)), { uid, createdAt: now });
+      batch.set(fs.doc(db, 'users', uid), {
+        name: n,
+        username: u,
+        email: e,
+        role: asAdmin ? 'admin' : 'user',
+        createdAt: now,
+      });
+      await batch.commit();
+      await au.signOut(auth);
+    } catch (err) {
+      if (cred) {
+        try {
+          await au.deleteUser(cred.user); // 프로필 저장에 실패하면 생성된 인증 계정도 되돌린다
+        } catch {
+          /* noop */
+        }
+        try {
+          await au.signOut(auth);
+        } catch {
+          /* noop */
+        }
+      }
+      throw mapAuthError(err);
+    } finally {
+      suppress = false;
+      await apply(auth.currentUser);
+    }
+  };
+
+  const login = async (username, password) => {
+    const u = String(username || '').trim().toLowerCase();
+    if (!u || !password) throw fail('아이디와 비밀번호를 입력해주세요.');
+    const { au, auth } = await getFirebase();
+    suppress = true;
+    try {
+      const cred = await au.signInWithEmailAndPassword(auth, toAuthEmail(u), await derivePassword(u, password));
+      const profile = await loadProfile(cred.user);
+      if (!profile) {
+        await au.signOut(auth);
+        throw fail('회원 정보를 찾을 수 없습니다. 관리자에게 문의해주세요.');
+      }
+      return profile;
+    } catch (err) {
+      throw mapAuthError(err);
+    } finally {
+      suppress = false;
+      await apply(auth.currentUser);
+    }
+  };
+
+  const logout = async () => {
+    const { au, auth } = await getFirebase();
+    await au.signOut(auth);
+  };
+
+  /** 관리자 계정이 인증만 있고 프로필 문서가 빠진 경우를 복구 */
+  const ensureAdminDocs = async () => {
+    const { fs, au, db, auth } = await getFirebase();
+    const { username, password, name, email } = ADMIN_ACCOUNT;
+    suppress = true;
+    try {
+      const cred = await au.signInWithEmailAndPassword(auth, toAuthEmail(username), await derivePassword(username, password));
+      const uid = cred.user.uid;
+      const now = new Date().toISOString();
+      const docs = [
+        [fs.doc(db, 'users', uid), { name, username, email, role: 'admin', createdAt: now }],
+        [fs.doc(db, 'usernames', username), { uid, createdAt: now }],
+        [fs.doc(db, 'emails', emailKey(email)), { uid, createdAt: now }],
+      ];
+      for (const [ref, data] of docs) {
+        if (!(await fs.getDoc(ref)).exists()) await fs.setDoc(ref, data);
+      }
+      await au.signOut(auth);
+    } finally {
+      suppress = false;
+      await apply(auth.currentUser);
+    }
+  };
+
+  /** 관리자 계정 수동 등록 (브라우저 콘솔에서 __createAdmin() 1회 실행) */
+  const seedAdmin = async () => {
+    try {
+      await register(ADMIN_ACCOUNT, { asAdmin: true });
+      return '관리자 계정을 생성했습니다. (아이디: admin)';
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') {
+        await ensureAdminDocs();
+        return '관리자 인증 계정이 이미 있어 프로필 정보를 확인/보완했습니다.';
+      }
+      throw err;
+    }
+  };
+
+  return {
+    ready: () => {
+      start();
+      return readyPromise;
+    },
+    getUser: () => current,
+    isAdmin: () => isAdminUser(current),
+    onChange: (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    isUsernameAvailable,
+    isEmailAvailable,
+    signUp: (data) => register(data),
+    login,
+    logout,
+    seedAdmin,
+  };
+})();
+
+window.__createAdmin = () =>
+  authService
+    .seedAdmin()
+    .then((msg) => console.info(`[admin] ${msg}`))
+    .catch((err) => console.error('[admin] 실패:', err.message || err));
+
+/* ======================================================================
+ * 3. SERVICE ENTRY POINTS  (Mock으로 되돌리려면 아래 두 줄의 주석을 교체)
+ * ====================================================================== */
+const noticeService = noticeFirebaseService;    // ← noticeMockService
+const fileStorageService = fileStorageFirebase; // ← fileStorageMock
 
 /* ======================================================================
  * 4. COMMON UTILS / LAYOUT (banner, header, footer)
@@ -527,6 +1039,7 @@ const headerHtml = () => `
     <nav aria-label="메인 네비게이션">
       <ul class="site-header__nav">
         ${NAV.map(([label, href]) => `<li><a href="${href}">${label}</a></li>`).join('')}
+        <li class="nav-auth" id="nav-auth" hidden></li>
       </ul>
     </nav>
   </header>`;
@@ -599,12 +1112,90 @@ async function initBanner() {
   }
 }
 
+/* ───────── 인증 UI (헤더 로그인 상태 / 접근 제한 / 보조 스타일) ───────── */
+const AUTH_STYLE = `
+.nav-auth{display:flex;align-items:center;gap:14px;list-style:none}
+.nav-auth[hidden]{display:none}
+.nav-auth__welcome{font-size:14px;white-space:nowrap}
+.nav-auth__btn{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.auth-wrap{max-width:480px;margin:0 auto;padding:0 0 80px}
+.auth-card{margin-top:24px}
+.auth-card .form-heading{margin-bottom:20px}
+.auth-card + .auth-card{margin-top:56px;padding-top:40px;border-top:1px solid rgba(0,0,0,.12)}
+.auth-sub{margin:-8px 0 24px;font-size:14px;opacity:.7}
+.auth-banner{margin:0 0 18px;padding:12px 14px;border-radius:8px;background:rgba(26,127,55,.08);color:#1a7f37;font-size:14px}
+.auth-field{margin-bottom:18px}
+.auth-field label{display:block;margin-bottom:8px;font-size:14px;font-weight:600}
+.auth-field .input{width:100%;box-sizing:border-box}
+.auth-inline{display:flex;gap:8px}
+.auth-inline .input{flex:1;min-width:0}
+.auth-inline .btn-outline{flex:none;white-space:nowrap}
+.auth-hint{margin:6px 0 0;font-size:13px;opacity:.6}
+.auth-field .field-error,.auth-field .field-ok,.auth-card > form > .field-error{margin:6px 0 0;font-size:13px}
+.field-ok{color:#1a7f37}
+.auth-submit{display:block;width:100%;box-sizing:border-box;margin-top:8px;text-align:center}
+`;
+
+function injectAuthStyles() {
+  if (document.getElementById('auth-style')) return;
+  const el = document.createElement('style');
+  el.id = 'auth-style';
+  el.textContent = AUTH_STYLE;
+  document.head.appendChild(el);
+}
+
+/** 로그인 후 돌아갈 주소: 같은 폴더의 *.html(?쿼리)만 허용 */
+const safeRedirect = (value) =>
+  value && /^[A-Za-z0-9_-]+\.html(\?[A-Za-z0-9_\-=&%.]*)?$/.test(value) ? value : 'notice.html';
+
+const currentPageRef = () => `${location.pathname.split('/').pop() || 'notice.html'}${location.search}`;
+
+function renderAuthNav(user) {
+  const el = document.getElementById('nav-auth');
+  if (!el) return;
+  el.hidden = false;
+  if (user) {
+    el.innerHTML = `<span class="nav-auth__welcome">${escapeHtml(user.name)}님 환영합니다</span><button type="button" class="nav-auth__btn" id="logout-btn">로그아웃</button>`;
+  } else {
+    const onLogin = document.body.dataset.page === 'login';
+    const href = onLogin ? 'login.html' : `login.html?redirect=${encodeURIComponent(currentPageRef())}`;
+    el.innerHTML = `<a href="${escapeHtml(href)}">로그인</a>`;
+  }
+}
+
+function renderAccessDenied(app, user) {
+  const loginHref = `login.html?redirect=${encodeURIComponent(currentPageRef())}`;
+  app.innerHTML = `
+    <p class="notice-empty">${user ? '관리자만 접근할 수 있는 페이지입니다.' : '로그인이 필요한 페이지입니다.'}</p>
+    <div class="detail-actions">
+      <a class="btn-outline" href="notice.html">${ICONS.list}목록으로</a>
+      ${user ? '' : `<a class="btn-primary btn-sm" href="${escapeHtml(loginHref)}">로그인</a>`}
+    </div>`;
+}
+
 /** 공지 배너 + 헤더(GNB) + 푸터를 <main> 앞/뒤에 삽입 */
 function mountLayout() {
+  injectAuthStyles();
   const main = document.querySelector('main');
   main.insertAdjacentHTML('beforebegin', bannerHtml() + headerHtml());
   main.insertAdjacentHTML('afterend', footerHtml());
   initBanner();
+
+  // 로그인 상태 표시 (인증 상태가 확인되면 로그인 ↔ "OOO님 환영합니다 + 로그아웃"으로 전환)
+  authService.onChange(renderAuthNav);
+  authService.ready().then(renderAuthNav);
+  document.getElementById('nav-auth').addEventListener('click', async (e) => {
+    if (!e.target.closest('#logout-btn')) return;
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.error(err);
+      showToast('로그아웃에 실패했습니다.');
+      return;
+    }
+    if (document.body.dataset.page === 'form') location.href = 'notice.html';
+    else location.reload();
+  });
 }
 
 /* ======================================================================
@@ -841,6 +1432,15 @@ function initListPage() {
   form.elements.q.value = q;
   form.elements.category.value = category;
 
+  // 글쓰기 버튼은 관리자에게만 노출
+  const writeBtn = form.querySelector('a[href="notice-write.html"]');
+  if (writeBtn) {
+    writeBtn.style.display = 'none';
+    authService.ready().then((user) => {
+      writeBtn.style.display = isAdminUser(user) ? '' : 'none';
+    });
+  }
+
   const pageUrl = (p) => {
     const sp = new URLSearchParams();
     if (category) sp.set('category', category);
@@ -968,10 +1568,14 @@ function initDetailPage() {
       </nav>
       <div class="detail-actions">
         <a class="btn-outline" href="notice.html">${ICONS.list}목록으로</a>
-        <div class="detail-actions__admin">
+        ${
+          authService.isAdmin()
+            ? `<div class="detail-actions__admin">
           <a class="btn-outline btn-sm" href="notice-edit.html?id=${encodeURIComponent(n.id)}">수정</a>
           <button type="button" class="btn-outline btn-sm btn-danger" id="delete-btn">삭제</button>
-        </div>
+        </div>`
+            : ''
+        }
       </div>`;
 
     document.getElementById('share-btn').addEventListener('click', async () => {
@@ -979,7 +1583,8 @@ function initDetailPage() {
       showToast(ok ? '링크가 복사되었습니다.' : '링크 복사에 실패했습니다.');
     });
 
-    document.getElementById('delete-btn').addEventListener('click', async (e) => {
+    const deleteBtn = document.getElementById('delete-btn');
+    if (deleteBtn) deleteBtn.addEventListener('click', async (e) => {
       if (!window.confirm('이 게시글을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.')) return;
       e.currentTarget.disabled = true;
       try {
@@ -997,6 +1602,7 @@ function initDetailPage() {
   (async () => {
     if (!id) return notFound();
     app.innerHTML = '<p class="notice-empty">로딩 중...</p>';
+    await authService.ready(); // 관리자 버튼 노출 여부를 알아야 렌더링 가능
     try {
       let notice = await noticeService.getById(id);
       if (!notice) return notFound();
@@ -1181,9 +1787,11 @@ function initFormPage() {
   }
 
   (async () => {
+    app.innerHTML = '<p class="notice-empty">로딩 중...</p>';
+    const user = await authService.ready();
+    if (!isAdminUser(user)) return renderAccessDenied(app, user); // 글쓰기/수정은 관리자 전용
     if (!isEdit) return renderForm(null);
     if (!id) return notFound();
-    app.innerHTML = '<p class="notice-empty">로딩 중...</p>';
     try {
       const notice = await noticeService.getById(id);
       if (!notice) return notFound();
@@ -1196,9 +1804,202 @@ function initFormPage() {
 }
 
 
-  /* ── bootstrap: <body data-page="list|detail|form"> ── */
+/** 로그인 페이지 (하단에 회원가입 폼 배치) */
+function initLoginPage() {
+  mountLayout();
+
+  const app = document.getElementById('notice-app');
+  const redirect = safeRedirect(getParam('redirect'));
+  const redirectQs = getParam('redirect') ? `&redirect=${encodeURIComponent(redirect)}` : '';
+
+  app.innerHTML = `
+    <div class="auth-wrap">
+      <a class="back-link" href="notice.html">${ICONS.chevronLeft}목록으로 돌아가기</a>
+
+      <section class="auth-card" aria-labelledby="login-title">
+        <h2 class="form-heading" id="login-title">로그인</h2>
+        <p class="auth-banner" id="signup-done" hidden>회원가입이 완료되었습니다. 로그인해주세요.</p>
+        <form id="login-form" novalidate>
+          <div class="auth-field">
+            <label for="l-username">아이디</label>
+            <input id="l-username" class="input" type="text" autocomplete="username" autocapitalize="none" placeholder="아이디를 입력하세요." />
+          </div>
+          <div class="auth-field">
+            <label for="l-password">비밀번호</label>
+            <input id="l-password" class="input" type="password" autocomplete="current-password" placeholder="비밀번호를 입력하세요." />
+          </div>
+          <p class="field-error" id="err-login" role="alert" hidden></p>
+          <button type="submit" class="btn-primary auth-submit" id="login-btn">로그인</button>
+        </form>
+      </section>
+
+      <section class="auth-card" id="signup" aria-labelledby="signup-title">
+        <h2 class="form-heading" id="signup-title">회원가입</h2>
+        <p class="auth-sub">아직 회원이 아니신가요? 아래 정보를 입력해 가입해주세요.</p>
+        <form id="signup-form" novalidate>
+          <div class="auth-field">
+            <label for="s-name">이름</label>
+            <input id="s-name" class="input" type="text" maxlength="20" autocomplete="name" placeholder="이름을 입력하세요." />
+            <p id="msg-name" role="alert" hidden></p>
+          </div>
+          <div class="auth-field">
+            <label for="s-username">아이디</label>
+            <div class="auth-inline">
+              <input id="s-username" class="input" type="text" maxlength="20" autocomplete="off" autocapitalize="none" placeholder="영문 소문자·숫자 4~20자" />
+              <button type="button" class="btn-outline btn-sm" id="check-username">중복확인</button>
+            </div>
+            <p id="msg-username" role="alert" hidden></p>
+          </div>
+          <div class="auth-field">
+            <label for="s-email">이메일</label>
+            <div class="auth-inline">
+              <input id="s-email" class="input" type="text" inputmode="email" autocomplete="email" autocapitalize="none" placeholder="example@email.com" />
+              <button type="button" class="btn-outline btn-sm" id="check-email">중복확인</button>
+            </div>
+            <p id="msg-email" role="alert" hidden></p>
+          </div>
+          <div class="auth-field">
+            <label for="s-password">비밀번호</label>
+            <input id="s-password" class="input" type="password" maxlength="${PW_MAX}" autocomplete="new-password" placeholder="${PW_MIN}~${PW_MAX}자" />
+            <p id="msg-password" role="alert" hidden></p>
+          </div>
+          <div class="auth-field">
+            <label for="s-password2">비밀번호 확인</label>
+            <input id="s-password2" class="input" type="password" maxlength="${PW_MAX}" autocomplete="new-password" placeholder="비밀번호를 한 번 더 입력하세요." />
+            <p id="msg-password2" role="alert" hidden></p>
+          </div>
+          <p class="field-error" id="msg-signup" role="alert" hidden></p>
+          <button type="submit" class="btn-primary auth-submit" id="signup-btn">가입하기</button>
+        </form>
+      </section>
+    </div>`;
+
+  if (getParam('signup') === '1') document.getElementById('signup-done').hidden = false;
+
+  const setMsg = (key, text, ok = false) => {
+    const el = document.getElementById(`msg-${key}`);
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = ok ? 'field-ok' : 'field-error';
+    el.hidden = !text;
+  };
+
+  /* ── 로그인 ── */
+  const loginForm = document.getElementById('login-form');
+  const loginBtn = document.getElementById('login-btn');
+  const errLogin = document.getElementById('err-login');
+  const setLoginError = (msg) => {
+    errLogin.textContent = msg || '';
+    errLogin.hidden = !msg;
+  };
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    const username = document.getElementById('l-username').value.trim();
+    const password = document.getElementById('l-password').value;
+    if (!username || !password) {
+      setLoginError('아이디와 비밀번호를 입력해주세요.');
+      return;
+    }
+    loginBtn.disabled = true;
+    loginBtn.textContent = '로그인 중...';
+    try {
+      await authService.login(username, password);
+      location.href = redirect;
+    } catch (err) {
+      setLoginError(err.message || '로그인에 실패했습니다.');
+      loginBtn.disabled = false;
+      loginBtn.textContent = '로그인';
+    }
+  });
+
+  /* ── 회원가입 ── */
+  const signupForm = document.getElementById('signup-form');
+  const signupBtn = document.getElementById('signup-btn');
+  const nameEl = document.getElementById('s-name');
+  const usernameEl = document.getElementById('s-username');
+  const emailEl = document.getElementById('s-email');
+  const pwEl = document.getElementById('s-password');
+  const pw2El = document.getElementById('s-password2');
+
+  // 값이 바뀌면 이전 확인/오류 메시지 제거
+  [
+    [nameEl, 'name'],
+    [usernameEl, 'username'],
+    [emailEl, 'email'],
+    [pwEl, 'password'],
+    [pw2El, 'password2'],
+  ].forEach(([el, key]) => el.addEventListener('input', () => setMsg(key, '')));
+
+  const runCheck = async (key, el, validate, check, okText, takenText) => {
+    const value = key === 'username' ? el.value.trim().toLowerCase() : el.value.trim();
+    const msg = validate(value);
+    if (msg) {
+      setMsg(key, msg);
+      return;
+    }
+    try {
+      const available = await check(value);
+      setMsg(key, available ? okText : takenText, available);
+    } catch (err) {
+      setMsg(key, err.message || '확인에 실패했습니다.');
+    }
+  };
+
+  document.getElementById('check-username').addEventListener('click', () =>
+    runCheck('username', usernameEl, validateUsername, authService.isUsernameAvailable, '사용 가능한 아이디입니다.', '이미 사용 중인 아이디입니다.'),
+  );
+  document.getElementById('check-email').addEventListener('click', () =>
+    runCheck('email', emailEl, validateEmail, authService.isEmailAvailable, '사용 가능한 이메일입니다.', '이미 가입된 이메일입니다.'),
+  );
+
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setMsg('signup', '');
+    const name = nameEl.value.trim();
+    const username = usernameEl.value.trim().toLowerCase();
+    const email = emailEl.value.trim();
+    const password = pwEl.value;
+    const password2 = pw2El.value;
+
+    const pwMsg = validatePassword(password);
+    const errors = [
+      ['name', nameEl, validateName(name)],
+      ['username', usernameEl, validateUsername(username) || (RESERVED_USERNAMES.includes(username) ? '사용할 수 없는 아이디입니다.' : '')],
+      ['email', emailEl, validateEmail(email)],
+      ['password', pwEl, pwMsg],
+      ['password2', pw2El, !pwMsg && password !== password2 ? '비밀번호가 일치하지 않습니다.' : !password2 ? '비밀번호를 한 번 더 입력해주세요.' : ''],
+    ];
+    errors.forEach(([key, , msg]) => setMsg(key, msg));
+    const firstBad = errors.find(([, , msg]) => msg);
+    if (firstBad) {
+      firstBad[1].focus();
+      return;
+    }
+
+    signupBtn.disabled = true;
+    signupBtn.textContent = '가입 중...';
+    try {
+      await authService.signUp({ name, username, password, email });
+      location.href = `login.html?signup=1${redirectQs}`;
+    } catch (err) {
+      setMsg(err.field && document.getElementById(`msg-${err.field}`) ? err.field : 'signup', err.message || '회원가입에 실패했습니다.');
+      signupBtn.disabled = false;
+      signupBtn.textContent = '가입하기';
+    }
+  });
+
+  // 이미 로그인된 상태라면 로그인 페이지에 머무를 필요가 없으므로 이동
+  authService.ready().then((user) => {
+    if (user) location.replace(redirect);
+  });
+}
+
+  /* ── bootstrap: <body data-page="list|detail|form|login"> ── */
   const pageType = document.body.dataset.page;
   if (pageType === 'list') initListPage();
   else if (pageType === 'detail') initDetailPage();
   else if (pageType === 'form') initFormPage();
+  else if (pageType === 'login') initLoginPage();
 })();

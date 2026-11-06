@@ -29,3 +29,6 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+
+[공지사항 게시판을 기반으로 새로운 게시판 만들기 - 고객센터 QNA]
