@@ -337,6 +337,7 @@ ul {
 .qna-answer-form textarea,
 .qna-textarea {
   width: 100%;
+  height: 100% !important;
   resize: vertical;
 }
 
@@ -1089,13 +1090,15 @@ a.nav-item:hover .nav-title {
   :root {
     --container: calc(100% - 32px);
   }
-
+  .container {
+    width: 90%;
+  }
   .notice-hero {
     padding: 32px 0 24px;
   }
 
   .notice-hero h1 {
-    font-size: 32px;
+    font-size: clamp(30px, 10.33333vw, 9999px); /* 32px */
   }
 
   .notice-hero p {
@@ -1132,7 +1135,9 @@ a.nav-item:hover .nav-title {
   .notice-row {
     font-size: 14.5px;
   }
-
+.qna-toolbar {
+    margin-bottom: 12px;
+  }
   .qna-table__head,
   .qna-row {
     grid-template-columns: 76px minmax(0, 1fr) 86px;

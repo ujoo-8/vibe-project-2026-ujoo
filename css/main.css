@@ -216,7 +216,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 40px;
+  padding: 0 30px;
 }
 
 /* Dark theme header for dark sections */
@@ -409,7 +409,7 @@ button {
 .mobile-menu__list {
   list-style: none;
   flex: 1;
-  padding: 0 clamp(16px, 4.26667vw, 9999px);
+  padding: 20px clamp(20px, 4.26667vw, 9999px);
   overflow-y: auto;
   height: 100%;
   scrollbar-width: none;
@@ -1855,7 +1855,8 @@ html.menu-open {
   }
 
   .header {
-    padding: 0 16px;
+    /* padding: 0 16px; */
+    padding: 0;
     height: var(--header-height);
   }
 
@@ -1886,7 +1887,7 @@ html.menu-open {
 
   .header--wrap {
     height: var(--header-height);
-    padding: 0;
+    padding: 10px 16px;
   }
 
   .header__logo img {

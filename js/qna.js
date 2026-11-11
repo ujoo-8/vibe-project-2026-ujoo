@@ -27,8 +27,16 @@
   const isAdmin = () => auth.isAdmin();
 
   const getAnswers = async (fs, db, id) => {
-    const snapshot = await fs.getDocs(fs.query(fs.collection(db, 'qna', id, 'answers'), fs.orderBy('createdAt', 'asc')));
-    return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+    try {
+      const snapshot = await fs.getDocs(fs.collection(db, 'qna', id, 'answers'));
+      return snapshot.docs
+        .map((doc) => ({ ...doc.data(), id: doc.id }))
+        .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+    } catch (error) {
+      // 답변 조회 권한/오류가 있어도 목록 전체가 실패하지 않도록 처리
+      console.warn('Failed to load answers for', id, error);
+      return [];
+    }
   };
 
   const getVisibleQuestions = async (fs, db, user) => {
@@ -38,8 +46,10 @@
       return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
     }
 
-    const queries = [fs.getDocs(fs.query(col, fs.where('isPrivate', '==', false), fs.orderBy('createdAt', 'desc')))];
-    if (user) queries.push(fs.getDocs(fs.query(col, fs.where('authorId', '==', user.uid), fs.orderBy('createdAt', 'desc'))));
+    // where + orderBy 조합은 Firestore 복합 색인이 필요해서 비로그인/일반회원에서 실패함
+    // → orderBy를 제거하고 아래에서 클라이언트 정렬
+    const queries = [fs.getDocs(fs.query(col, fs.where('isPrivate', '==', false)))];
+    if (user) queries.push(fs.getDocs(fs.query(col, fs.where('authorId', '==', user.uid))));
     const snapshots = await Promise.all(queries);
     const map = new Map();
     snapshots.forEach((snapshot) => snapshot.docs.forEach((doc) => map.set(doc.id, { ...doc.data(), id: doc.id })));
