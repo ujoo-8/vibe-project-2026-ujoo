@@ -29,9 +29,15 @@
       <div class="notice" id="site-notice" role="region" aria-label="공지사항 미리보기">
         <div class="notice__items" id="notice-preview-items"></div>
         <div class="notice__controls">
-          <button type="button" class="notice__control" id="notice-play" aria-label="공지사항 재생" aria-pressed="false" hidden>▶</button>
-          <button type="button" class="notice__control" id="notice-pause" aria-label="공지사항 정지">■</button>
-          <button type="button" class="notice__control notice__close" id="notice-close" aria-label="공지사항 닫기">×</button>
+          <button type="button" class="notice__control" id="notice-play" aria-label="공지사항 재생" aria-pressed="false" hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="24px" width="24px" fill="#fff"><path d="M9.5,16.5l7-4.5l-7-4.5v9ZM12,22q-2.07,0-3.9-0.79q-1.82-0.79-3.17-2.14Q3.58,17.73 2.79,15.9T2,12Q2,9.92 2.79,8.1Q3.58,6.27 4.93,4.93Q6.28,3.57 8.1,2.79Q9.93,2 12,2t3.9,0.79t3.17,2.14q1.35,1.35 2.14,3.17Q22,9.92 22,12t-0.79,3.9t-2.14,3.17q-1.35,1.35-3.17,2.14T12,22Zm0-2q3.35,0 5.68-2.32T20,12T17.68,6.32T12,4T6.33,6.32T4,12t2.33,5.68T12,20Zm0-8Z"/></svg>
+          </button>
+          <button type="button" class="notice__control" id="notice-pause" aria-label="공지사항 정지">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="24px" width="24px" fill="#fff"><path d="M9,16h2V8H9v8Zm4,0h2V8H13v8Zm-1,6q-2.07,0-3.9-0.79q-1.82-0.79-3.17-2.14Q3.58,17.73 2.79,15.9T2,12Q2,9.92 2.79,8.1Q3.58,6.27 4.93,4.93Q6.28,3.57 8.1,2.79Q9.93,2 12,2t3.9,0.79t3.17,2.14q1.35,1.35 2.14,3.17Q22,9.92 22,12t-0.79,3.9t-2.14,3.17q-1.35,1.35-3.17,2.14T12,22Zm0-2q3.35,0 5.68-2.32T20,12T17.68,6.32T12,4T6.33,6.32T4,12t2.33,5.68T12,20Zm0-8Z"/></svg>
+          </button>
+          <button type="button" class="notice__control notice__close" id="notice-close" aria-label="공지사항 닫기">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="24px" width="24px" fill="#fff"><path d="M6.4,19L5,17.6L10.6,12L5,6.4L6.4,5L12,10.6L17.6,5L19,6.4L13.4,12L19,17.6L17.6,19L12,13.4L6.4,19Z"/></svg>
+          </button>
         </div>
       </div>
       <div class="header--wrap">

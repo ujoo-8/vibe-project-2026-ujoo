@@ -117,7 +117,7 @@ button {
   min-height: 36px;
   padding: 0 150px 0 40px;
   width: 100%;
-  background-color: #222;
+  background-color: #000;
   color: #fff;
   overflow: hidden;
 }
@@ -153,10 +153,13 @@ button {
 }
 
 .notice__label {
-  color: #aaa;
+  color: #fff;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.08em;
+  background-color: #0c22e9;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .notice__title {
@@ -166,7 +169,7 @@ button {
 
 .notice__controls {
   position: absolute;
-  right: 40px;
+  right: 16px;
   top: 0;
   display: flex;
   align-items: center;
